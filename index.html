@@ -837,8 +837,23 @@
       <div class="form-group"><label>תאריך מופע</label><input type="date" id="cp-date"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>🔗 קישור לברושור</label><input id="cp-brochure" placeholder="https://..."></div>
-      <div class="form-group"><label>🎬 קישור למופע / סרטון</label><input id="cp-video" placeholder="https://youtube.com/..."></div>
+      <div class="form-group">
+        <label>🖼️ תמונת ברושור (מהמחשב)</label>
+        <input type="file" id="cp-brochure-file" accept="image/*" onchange="loadBrochureImage(this)" style="padding:6px;font-size:14px">
+        <div id="cp-brochure-preview" style="margin-top:8px;display:none">
+          <img id="cp-brochure-img" style="max-width:100%;max-height:150px;border-radius:8px;border:1px solid var(--border)">
+          <div style="margin-top:6px;display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" onclick="copyBrochureImage()">📋 העתק תמונה</button>
+            <button class="btn btn-outline btn-sm" onclick="removeBrochureImage()" style="color:var(--red)">✕ הסרה</button>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🎬 קישור למופע / סרטון</label>
+        <input id="cp-video" placeholder="https://youtube.com/...">
+        <label style="margin-top:10px;display:block">🔗 קישור לברושור (אופציונלי)</label>
+        <input id="cp-brochure" placeholder="https://...">
+      </div>
     </div>
     <div class="form-group">
       <label>📝 הודעה לשליחה</label>
@@ -2050,6 +2065,42 @@ let cpLevelFilter = '';
 
 function saveCampaigns() { localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns)); }
 
+// ---- Brochure image ----
+let cpBrochureBase64 = null;
+
+function loadBrochureImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    cpBrochureBase64 = e.target.result; // data:image/...;base64,...
+    document.getElementById('cp-brochure-img').src = cpBrochureBase64;
+    document.getElementById('cp-brochure-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeBrochureImage() {
+  cpBrochureBase64 = null;
+  document.getElementById('cp-brochure-file').value = '';
+  document.getElementById('cp-brochure-preview').style.display = 'none';
+}
+
+async function copyBrochureImage() {
+  if (!cpBrochureBase64) return;
+  try {
+    const res = await fetch(cpBrochureBase64);
+    const blob = await res.blob();
+    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+    showToast('✓ התמונה הועתקה — הדביקי ב-Gmail עם Ctrl+V');
+  } catch(e) {
+    // fallback: open in new tab so user can copy manually
+    const w = window.open();
+    w.document.write('<img src="' + cpBrochureBase64 + '" style="max-width:100%">');
+    showToast('התמונה נפתחה בטאב חדש — לחצי עליה ימין → העתק תמונה');
+  }
+}
+
 function setCpLevel(btn, level) {
   cpLevelFilter = level;
   document.querySelectorAll('.cp-level-btn').forEach(b => b.classList.remove('active'));
@@ -2063,7 +2114,11 @@ function openNewCampaign() {
   document.getElementById('campaign-modal-title').textContent = '📢 הפצה חדשה';
   ['cp-name','cp-brochure','cp-video','cp-message'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cp-date').value = '';
+  cpBrochureBase64 = null;
+  document.getElementById('cp-brochure-file').value = '';
+  document.getElementById('cp-brochure-preview').style.display = 'none';
   campaignSelectedIds = new Set();
+  cpLevelFilter = '';
   document.querySelectorAll('.cp-level-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   renderCampaignRecipients();
   document.getElementById('campaign-modal-overlay').style.display = 'flex';
@@ -2130,6 +2185,7 @@ function saveCampaign() {
     id: editingCampaignIdx !== null ? campaigns[editingCampaignIdx].id : 'camp-' + Date.now(),
     name, date: document.getElementById('cp-date').value,
     brochure: document.getElementById('cp-brochure').value.trim(),
+    brochureImage: cpBrochureBase64 || null,
     video: document.getElementById('cp-video').value.trim(),
     message: document.getElementById('cp-message').value.trim(),
     recipients: [...campaignSelectedIds],
@@ -2164,6 +2220,7 @@ function renderCampaignsList() {
             ${withEmail ? '· 📧 ' + withEmail : ''}
             ${withMobile ? '· 📱 ' + withMobile : ''}
           </div>
+          ${camp.brochureImage ? `<div style="margin-top:8px"><img src="${camp.brochureImage}" style="max-height:80px;border-radius:6px;border:1px solid var(--border)"></div>` : ''}
           ${camp.brochure ? `<div style="margin-top:6px;font-size:13px">📄 <a href="${escHtml(camp.brochure)}" target="_blank">ברושור</a></div>` : ''}
           ${camp.video ? `<div style="font-size:13px">🎬 <a href="${escHtml(camp.video)}" target="_blank">מופע / סרטון</a></div>` : ''}
         </div>
@@ -2185,6 +2242,13 @@ function editCampaign(idx) {
   document.getElementById('cp-name').value = c.name || '';
   document.getElementById('cp-date').value = c.date || '';
   document.getElementById('cp-brochure').value = c.brochure || '';
+  cpBrochureBase64 = c.brochureImage || null;
+  if (cpBrochureBase64) {
+    document.getElementById('cp-brochure-img').src = cpBrochureBase64;
+    document.getElementById('cp-brochure-preview').style.display = 'block';
+  } else {
+    document.getElementById('cp-brochure-preview').style.display = 'none';
+  }
   document.getElementById('cp-video').value = c.video || '';
   document.getElementById('cp-message').value = c.message || '';
   campaignSelectedIds = new Set(c.recipients || []);
@@ -2224,11 +2288,20 @@ function openSendModal(idx) {
   const actions = [];
 
   if (withEmail.length > 0) {
+    const hasBrochureImg = !!camp.brochureImage;
     actions.push(`
       <div class="card" style="padding:14px">
         <div style="font-weight:600;margin-bottom:8px">📧 שליחה במייל (${withEmail.length} נמענים)</div>
+        ${hasBrochureImg ? `
+        <div style="background:#fffde7;border:1px solid #ffe082;border-radius:8px;padding:10px;margin-bottom:10px;font-size:13px">
+          <strong>שלב 1:</strong> לחצי "העתק ברושור" → <strong>שלב 2:</strong> לחצי "פתח Gmail" → הדביקי את התמונה בגוף המייל עם <kbd>Ctrl+V</kbd>
+        </div>
+        <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <img src="${camp.brochureImage}" style="height:60px;border-radius:6px;border:1px solid var(--border)">
+          <button class="btn btn-primary btn-sm" onclick="copyBrochureFromCampaign(${idx})">📋 שלב 1: העתק ברושור</button>
+        </div>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <a href="${gmailUrl}" target="_blank" class="btn btn-primary btn-sm">פתח Gmail</a>
+          <a href="${gmailUrl}" target="_blank" class="btn btn-primary btn-sm">${hasBrochureImg ? 'שלב 2: ' : ''}פתח Gmail</a>
           <button class="btn btn-outline btn-sm" onclick="copyToClipboard('${emailList.replace(/'/g,"\\'")}', 'רשימת מיילים הועתקה')">📋 העתק מיילים</button>
         </div>
       </div>`);
@@ -2262,6 +2335,13 @@ function openSendModal(idx) {
 
   document.getElementById('send-actions').innerHTML = actions.join('');
   document.getElementById('campaign-send-overlay').style.display = 'flex';
+}
+
+async function copyBrochureFromCampaign(idx) {
+  const camp = campaigns[idx];
+  if (!camp?.brochureImage) return;
+  cpBrochureBase64 = camp.brochureImage;
+  await copyBrochureImage();
 }
 
 function copyToClipboard(text, msg) {
