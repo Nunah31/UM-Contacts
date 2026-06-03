@@ -848,12 +848,20 @@
 
     <div style="background:#f4f6f9;border-radius:10px;padding:16px;margin:16px 0">
       <div style="font-weight:600;margin-bottom:10px;font-size:15px">👥 בחירת נמענים</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-        <button class="btn btn-outline btn-sm" onclick="selectByFilter('email')">📧 כל מי שיש מייל</button>
-        <button class="btn btn-outline btn-sm" onclick="selectByFilter('mobile')">📱 כל מי שיש נייד</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn btn-outline btn-sm" onclick="selectByFilter('email')">📧 יש מייל</button>
+        <button class="btn btn-outline btn-sm" onclick="selectByFilter('mobile')">📱 יש נייד</button>
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('both')">📧+📱 שניהם</button>
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('performed')">✓ הופענו בעבר</button>
-        <button class="btn btn-outline btn-sm" onclick="selectByFilter('none')" style="color:var(--red)">נקה הכל</button>
+        <button class="btn btn-danger btn-sm" onclick="selectByFilter('none')">נקה הכל</button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:8px;background:#f0f4f8;border-radius:8px;align-items:center">
+        <span style="font-size:13px;color:var(--muted);font-weight:600">שלב חינוך:</span>
+        <button class="btn btn-outline btn-sm cp-level-btn active" data-level="" onclick="setCpLevel(this,'')">הכל</button>
+        <button class="btn btn-outline btn-sm cp-level-btn" data-level="יסודי" onclick="setCpLevel(this,'יסודי')">יסודי</button>
+        <button class="btn btn-outline btn-sm cp-level-btn" data-level="חטיבה" onclick="setCpLevel(this,'חטיבה')">חטיבה</button>
+        <button class="btn btn-outline btn-sm cp-level-btn" data-level="תיכון" onclick="setCpLevel(this,'תיכון')">תיכון</button>
+        <button class="btn btn-outline btn-sm cp-level-btn" data-level="שש שנתי" onclick="setCpLevel(this,'שש שנתי')">שש שנתי</button>
       </div>
       <div style="display:flex;gap:10px;margin-bottom:8px;font-size:13px;color:var(--muted)">
         <span id="cp-selected-count">0 נמענים נבחרו</span>
@@ -2038,15 +2046,25 @@ const CAMPAIGNS_KEY = 'um_campaigns_v1';
 let campaigns = JSON.parse(localStorage.getItem(CAMPAIGNS_KEY) || '[]');
 let campaignSelectedIds = new Set();
 let editingCampaignIdx = null;
+let cpLevelFilter = '';
 
 function saveCampaigns() { localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns)); }
 
+function setCpLevel(btn, level) {
+  cpLevelFilter = level;
+  document.querySelectorAll('.cp-level-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCampaignRecipients();
+}
+
 function openNewCampaign() {
   editingCampaignIdx = null;
+  cpLevelFilter = '';
   document.getElementById('campaign-modal-title').textContent = '📢 הפצה חדשה';
   ['cp-name','cp-brochure','cp-video','cp-message'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('cp-date').value = '';
   campaignSelectedIds = new Set();
+  document.querySelectorAll('.cp-level-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   renderCampaignRecipients();
   document.getElementById('campaign-modal-overlay').style.display = 'flex';
 }
@@ -2058,19 +2076,25 @@ function closeSendOverlayIfOverlay(e) { if (e.target.id === 'campaign-send-overl
 function selectByFilter(filter) {
   if (filter === 'none') { campaignSelectedIds.clear(); }
   else {
-    allContacts.forEach(c => {
-      if (filter === 'email' && c.email) campaignSelectedIds.add(c.id);
-      else if (filter === 'mobile' && c.mobile) campaignSelectedIds.add(c.id);
-      else if (filter === 'both' && c.email && c.mobile) campaignSelectedIds.add(c.id);
-      else if (filter === 'performed' && c.performedBefore) campaignSelectedIds.add(c.id);
-    });
+    allContacts
+      .filter(c => !cpLevelFilter || (c.level || '').includes(cpLevelFilter))
+      .forEach(c => {
+        if (filter === 'email' && c.email) campaignSelectedIds.add(c.id);
+        else if (filter === 'mobile' && c.mobile) campaignSelectedIds.add(c.id);
+        else if (filter === 'both' && c.email && c.mobile) campaignSelectedIds.add(c.id);
+        else if (filter === 'performed' && c.performedBefore) campaignSelectedIds.add(c.id);
+      });
   }
   renderCampaignRecipients();
 }
 
 function renderCampaignRecipients() {
   const search = (document.getElementById('cp-recipient-search')?.value || '').toLowerCase();
-  const list = allContacts.filter(c => (c.email || c.mobile) && (!search || (c.school+c.city+c.contactName).toLowerCase().includes(search)));
+  const list = allContacts.filter(c =>
+    (c.email || c.mobile) &&
+    (!cpLevelFilter || (c.level || '').includes(cpLevelFilter)) &&
+    (!search || (c.school+c.city+c.contactName).toLowerCase().includes(search))
+  );
   const emailCount = [...campaignSelectedIds].filter(id => allContacts.find(c=>c.id===id)?.email).length;
   const mobileCount = [...campaignSelectedIds].filter(id => allContacts.find(c=>c.id===id)?.mobile).length;
   document.getElementById('cp-selected-count').textContent = campaignSelectedIds.size + ' נמענים נבחרו';
