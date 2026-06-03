@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ניהול קשרים - UM Shows</title>
-<link rel="icon" type="image/png" href="icon.png.png">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 <style>
   :root {
     --primary: #2c6fad;
@@ -407,7 +408,7 @@
 
 <!-- SIDEBAR -->
 <div id="sidebar">
-  <h1>UM Shows<span>ניהול קשרים</span></h1>
+  <h1>UM-Contacts<span>בתי ספר ועוד</span></h1>
 
   <div class="sidebar-section">
     <input type="text" id="search-box" placeholder="🔍 חיפוש בית ספר / עיר / איש קשר..." oninput="applyFilters()">
@@ -822,7 +823,7 @@ function renderList() {
 
     const lastNote = c.conversations && c.conversations.length > 0 ? c.conversations[0].notes.slice(0, 60) : '';
 
-    return `<div class="contact-item ${selectedContact && selectedContact.id === c.id ? 'selected' : ''}" onclick="selectContact('${c.id}')">
+    return `<div class="contact-item ${selectedContact && selectedContact.id === c.id ? 'selected' : ''}" onclick="selectContact('${c.id}')" data-tooltip-id="${c.id}">
       ${indicatorClass ? `<div class="follow-up-indicator ${indicatorClass}" title="${indicatorTitle}"></div>` : ''}
       <div class="school-name">${highlight(c.school)}</div>
       <div class="city-name">${highlight(c.city)} ${levelTag}</div>
@@ -919,7 +920,7 @@ function showContactDetail() {
         <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
         <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(c.level || '—')}</div></div>
         <div class="info-item"><label>טלפון בית ספר</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
-        <div class="info-item"><label>איש קשר</label><div class="value contact-name-tooltip" data-id="${c.id}">${escHtml(c.contactName || '—')}</div></div>
+        <div class="info-item"><label>איש קשר</label><div class="value">${escHtml(c.contactName || '—')}</div></div>
         <div class="info-item"><label>נייד</label><div class="value">${phoneLinks(c.mobile)}</div></div>
         <div class="info-item"><label>מייל</label><div class="value"><a href="mailto:${c.email}">${escHtml(c.email || '—')}</a></div></div>
       </div>
@@ -1511,27 +1512,32 @@ function initTooltip() {
   document.body.appendChild(tooltipEl);
 
   document.addEventListener('mouseover', e => {
-    const el = e.target.closest('.contact-name-tooltip');
-    if (!el) return;
-    const id = el.dataset.id;
+    const el = e.target.closest('[data-tooltip-id]');
+    if (!el) { tooltipEl.classList.remove('visible'); return; }
+    const id = el.dataset.tooltipId;
     const c = allContacts.find(x => x.id === id);
     if (!c) return;
 
-    let html = `<strong>${escHtml(c.contactName || '—')}</strong>`;
-    if (c.school) html += `<div style="font-size:13px;color:#aab5c3;margin-bottom:6px">${escHtml(c.school)}</div>`;
+    let html = `<strong>🏫 ${escHtml(c.school)}</strong>`;
+    html += `<div style="font-size:13px;color:#aab5c3;margin-bottom:8px">${escHtml(c.city)}${c.level ? ' · ' + escHtml(c.level) : ''}</div>`;
+    if (c.contactName) html += `<div>👤 ${escHtml(c.contactName)}</div>`;
     if (c.mobile) html += `<div>📱 ${escHtml(c.mobile)}</div>`;
     if (c.email) html += `<div>✉️ ${escHtml(c.email)}</div>`;
+    if (c.followUpDate) html += `<div style="color:#f0a500;margin-top:4px">🔔 תזכורת: ${formatDate(c.followUpDate)}</div>`;
 
-    const convos = (c.conversations || []).slice(0, 5);
+    const convos = (c.conversations || []);
     if (convos.length > 0) {
-      html += `<div class="tip-entry"><div style="color:var(--accent);font-weight:600;margin-bottom:4px">היסטוריית שיחות:</div>`;
-      convos.forEach(cv => {
-        html += `<div style="margin-bottom:6px"><span class="tip-date">${formatDate(cv.date)} ${cv.status ? '· ' + statusLabel(cv.status) : ''}</span><br>${escHtml(cv.notes.slice(0, 120))}${cv.notes.length > 120 ? '...' : ''}</div>`;
+      html += `<div class="tip-entry"><div style="color:var(--accent);font-weight:600;margin-bottom:6px">היסטוריית שיחות (${convos.length}):</div>`;
+      convos.slice(0, 4).forEach(cv => {
+        html += `<div style="margin-bottom:8px">
+          <span class="tip-date">${formatDate(cv.date)}${cv.status ? ' · ' + statusLabel(cv.status) : ''}</span><br>
+          <span style="color:#dde">${escHtml(cv.notes.slice(0, 150))}${cv.notes.length > 150 ? '...' : ''}</span>
+        </div>`;
       });
-      if (c.conversations.length > 5) html += `<div style="color:#8899aa;font-size:12px">+ עוד ${c.conversations.length - 5} שיחות</div>`;
+      if (convos.length > 4) html += `<div style="color:#8899aa;font-size:12px">+ עוד ${convos.length - 4} שיחות...</div>`;
       html += '</div>';
     } else {
-      html += `<div class="tip-entry" style="color:#8899aa">אין שיחות מתועדות</div>`;
+      html += `<div class="tip-entry" style="color:#8899aa;font-style:italic">אין שיחות מתועדות</div>`;
     }
 
     tooltipEl.innerHTML = html;
@@ -1540,8 +1546,9 @@ function initTooltip() {
   });
 
   document.addEventListener('mousemove', e => {
-    if (tooltipEl.classList.contains('visible')) positionTooltip(e);
-    if (!e.target.closest('.contact-name-tooltip')) tooltipEl.classList.remove('visible');
+    if (!tooltipEl.classList.contains('visible')) return;
+    positionTooltip(e);
+    if (!e.target.closest('[data-tooltip-id]')) tooltipEl.classList.remove('visible');
   });
 }
 
