@@ -590,7 +590,7 @@
 
 <!-- MOBILE SEARCH -->
 <div id="mobile-search-bar">
-  <input type="text" id="mobile-search-input" placeholder="חיפוש..." oninput="onMobileSearch(this.value)" dir="rtl">
+  <input type="text" id="mobile-search-input" placeholder="חיפוש..." oninput="onMobileSearch(this.value);toggleClearBtn()" dir="rtl">
   <button class="mobile-search-cancel" onclick="closeMobileSearch()">ביטול</button>
 </div>
 
@@ -638,8 +638,9 @@
 <div id="sidebar">
   <h1>UM-Contacts<span>בתי ספר</span></h1>
 
-  <div class="sidebar-section">
-    <input type="text" id="search-box" placeholder="🔍 חיפוש בית ספר / עיר / איש קשר..." oninput="applyFilters()">
+  <div class="sidebar-section" style="position:relative">
+    <input type="text" id="search-box" placeholder="🔍 חיפוש בית ספר / עיר / איש קשר..." oninput="applyFilters();toggleClearBtn()" style="padding-left:28px">
+    <button id="clear-search-btn" onclick="clearSearch()" title="נקה חיפוש" style="display:none;position:absolute;left:20px;top:50%;transform:translateY(-50%);background:none;border:none;color:#aab5c3;font-size:16px;cursor:pointer;line-height:1;padding:2px 4px">✕</button>
   </div>
 
   <div class="sidebar-section">
@@ -1981,6 +1982,19 @@ function mobFilterStatus(el, status) {
   el.classList.add('active');
   activeStatus = status;
   applyFilters();
+}
+
+function clearSearch() {
+  document.getElementById('search-box').value = '';
+  const mob = document.getElementById('mobile-search-input');
+  if (mob) mob.value = '';
+  document.getElementById('clear-search-btn').style.display = 'none';
+  applyFilters();
+}
+
+function toggleClearBtn() {
+  const val = document.getElementById('search-box').value || document.getElementById('mobile-search-input')?.value || '';
+  document.getElementById('clear-search-btn').style.display = val ? 'block' : 'none';
 }
 
 function updateMobileBadge() {
