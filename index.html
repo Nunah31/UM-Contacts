@@ -793,9 +793,15 @@
         <input type="text" id="call-contact-phone" placeholder="050-...">
       </div>
     </div>
-    <div class="form-group">
-      <label>📅 תזכורת - לחזור בתאריך</label>
-      <input type="date" id="call-followup">
+    <div class="form-row">
+      <div class="form-group">
+        <label>📅 תזכורת - לחזור בתאריך</label>
+        <input type="date" id="call-followup">
+      </div>
+      <div class="form-group">
+        <label>⏰ שעה</label>
+        <input type="time" id="call-followup-time" placeholder="09:00">
+      </div>
     </div>
     <div class="form-group">
       <label>הסיבה לחזרה</label>
@@ -908,6 +914,10 @@ async function init() {
   checkReminders();
   renderStats();
   detectDuplicates();
+  // Request notification permission & check due reminders
+  requestNotificationPermission().then(granted => {
+    if (granted) checkAndNotifyDueReminders();
+  });
 }
 
 function processRawData(raw) {
@@ -1109,11 +1119,14 @@ function showContactDetail() {
 
   const sortedConvos = [...(c.conversations || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const convHtml = sortedConvos.map((conv, i) => `
-    <div class="conv-entry">
-      <button class="delete-conv" onclick="deleteConv('${conv.date}','${conv.notes.slice(0,20).replace(/'/g,'')}'')" title="מחיקה">✕</button>
+    <div class="conv-entry" id="conv-entry-${i}">
+      <div style="display:flex;gap:4px;position:absolute;top:8px;left:8px">
+        <button class="delete-conv" style="position:static" onclick="editConv(${i})" title="עריכה">✏️</button>
+        <button class="delete-conv" style="position:static" onclick="deleteConv('${conv.date}','${conv.notes.slice(0,20).replace(/'/g,'').replace(/`/g,'')}'')" title="מחיקה">✕</button>
+      </div>
       <div class="conv-date">${formatDate(conv.date)} ${conv.status ? ' · ' + statusLabel(conv.status) : ''}</div>
       <div class="conv-notes">${escHtml(conv.notes)}</div>
-      ${conv.followUpDate ? `<div class="conv-followup">תזכורת: <span>${formatDate(conv.followUpDate)}</span></div>` : ''}
+      ${conv.followUpDate ? `<div class="conv-followup">תזכורת: <span>${formatDate(conv.followUpDate)}${conv.followUpTime ? ' ' + conv.followUpTime : ''}</span></div>` : ''}
     </div>
   `).join('');
 
@@ -1196,6 +1209,7 @@ function openAddCallModal() {
   document.getElementById('call-contact-name').value = selectedContact.contactName || '';
   document.getElementById('call-contact-phone').value = selectedContact.mobile || '';
   document.getElementById('call-followup').value = '';
+  document.getElementById('call-followup-time').value = '';
   document.getElementById('call-followup-reason').value = '';
   document.getElementById('modal-overlay').classList.add('open');
   setTimeout(() => document.getElementById('call-notes').focus(), 100);
@@ -1216,6 +1230,7 @@ function saveCall() {
   const contactName = document.getElementById('call-contact-name').value.trim();
   const contactPhone = document.getElementById('call-contact-phone').value.trim();
   const followup = document.getElementById('call-followup').value;
+  const followupTime = document.getElementById('call-followup-time').value;
   const followupReason = document.getElementById('call-followup-reason').value.trim();
 
   if (!notes && !contactName) { showToast('נא להזין הערות או שם איש קשר'); return; }
@@ -1232,7 +1247,9 @@ function saveCall() {
   // Set follow-up
   if (followup) {
     selectedContact.followUpDate = followup;
+    selectedContact.followUpTime = followupTime || null;
     selectedContact.followUpReason = followupReason;
+    scheduleNotification(selectedContact);
   }
 
   saveToStorage();
@@ -1263,6 +1280,46 @@ function clearFollowUp() {
   showContactDetail();
   updateBadges();
   showToast('תזכורת בוטלה');
+}
+
+function editConv(sortedIdx) {
+  const sortedConvos = [...(selectedContact.conversations || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const conv = sortedConvos[sortedIdx];
+  if (!conv) return;
+
+  // Find real index in original array
+  const realIdx = selectedContact.conversations.findIndex(c => c.date === conv.date && c.notes === conv.notes);
+
+  const modal = document.getElementById('modal');
+  const overlay = document.getElementById('modal-overlay');
+  document.getElementById('modal-title').textContent = '✏️ עריכת שיחה';
+  document.getElementById('call-date').value = conv.date || today();
+  document.getElementById('call-status').value = conv.status || 'talked';
+  document.getElementById('call-notes').value = conv.notes || '';
+  document.getElementById('call-contact-name').value = selectedContact.contactName || '';
+  document.getElementById('call-contact-phone').value = selectedContact.mobile || '';
+  document.getElementById('call-followup').value = conv.followUpDate || '';
+  document.getElementById('call-followup-time').value = conv.followUpTime || '';
+  document.getElementById('call-followup-reason').value = '';
+  overlay.classList.add('open');
+
+  // Override save button to update instead of create
+  const saveBtn = overlay.querySelector('.btn-primary');
+  saveBtn.onclick = () => {
+    selectedContact.conversations[realIdx] = {
+      date: document.getElementById('call-date').value,
+      notes: document.getElementById('call-notes').value.trim(),
+      status: document.getElementById('call-status').value,
+      followUpDate: document.getElementById('call-followup').value || null,
+      followUpTime: document.getElementById('call-followup-time').value || null,
+    };
+    saveToStorage();
+    closeModal();
+    document.getElementById('modal-title').textContent = '📞 רישום שיחה';
+    saveBtn.onclick = saveCall;
+    showContactDetail();
+    showToast('השיחה עודכנה ✓');
+  };
 }
 
 function deleteConv(date, notePrefix) {
@@ -2004,6 +2061,62 @@ function updateMobileBadge() {
     badge.textContent = overdue;
     badge.style.display = overdue > 0 ? 'block' : 'none';
   }
+}
+
+// =================== NOTIFICATIONS ===================
+
+async function requestNotificationPermission() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+async function scheduleNotification(contact) {
+  const granted = await requestNotificationPermission();
+  if (!granted || !contact.followUpDate) return;
+
+  const dateStr = contact.followUpDate;
+  const timeStr = contact.followUpTime || '09:00';
+  const reminderTime = new Date(`${dateStr}T${timeStr}:00`);
+  const now = new Date();
+  const delay = reminderTime - now;
+
+  if (delay <= 0) {
+    // Already past — show immediately
+    showBrowserNotification(contact);
+    return;
+  }
+
+  // Schedule via setTimeout (works while app/tab is open)
+  if (delay < 7 * 24 * 60 * 60 * 1000) { // within 7 days
+    setTimeout(() => showBrowserNotification(contact), delay);
+    showToast(`תזכורת נקבעה ל-${formatDate(dateStr)} ${timeStr} 🔔`);
+  }
+}
+
+function showBrowserNotification(contact) {
+  if (Notification.permission !== 'granted') return;
+  const n = new Notification('UM-Contacts 🔔', {
+    body: `${contact.school} — ${contact.followUpReason || 'לחזור ליצור קשר'}`,
+    icon: './icon.png',
+    badge: './icon.png',
+    tag: 'reminder-' + contact.id,
+    requireInteraction: true
+  });
+  n.onclick = () => { window.focus(); selectContact(contact.id); n.close(); };
+}
+
+function checkAndNotifyDueReminders() {
+  if (Notification.permission !== 'granted') return;
+  const todayStr = today();
+  const nowTime = new Date().toTimeString().slice(0,5);
+  allContacts.forEach(c => {
+    if (!c.followUpDate || c.followUpDate > todayStr) return;
+    if (c.followUpDate === todayStr && c.followUpTime && c.followUpTime > nowTime) return;
+    showBrowserNotification(c);
+  });
 }
 
 // Register service worker
