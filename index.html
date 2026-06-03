@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ניהול קשרים - UM Shows</title>
+<link rel="icon" type="image/png" href="icon.png.png">
 <style>
   :root {
     --primary: #2c6fad;
@@ -34,7 +35,7 @@
     display: flex;
     height: 100vh;
     overflow: hidden;
-    font-size: 14px;
+    font-size: 16px;
   }
 
   /* SIDEBAR */
@@ -51,7 +52,7 @@
 
   #sidebar h1 {
     padding: 18px 16px 12px;
-    font-size: 16px;
+    font-size: 18px;
     color: #fff;
     border-bottom: 1px solid #2e3f55;
     line-height: 1.3;
@@ -63,8 +64,8 @@
 
   .sidebar-btn {
     display: flex; align-items: center; gap: 8px;
-    padding: 8px 12px; border-radius: 6px; cursor: pointer;
-    color: #cdd5e0; font-size: 13px; transition: background .15s;
+    padding: 9px 12px; border-radius: 6px; cursor: pointer;
+    color: #cdd5e0; font-size: 15px; transition: background .15s;
     border: none; background: none; width: 100%; text-align: right;
   }
   .sidebar-btn:hover, .sidebar-btn.active { background: #2e3f55; color: #fff; }
@@ -124,6 +125,9 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
   }
   #list-header h2 { font-size: 14px; flex: 1; }
   #list-count { font-size: 12px; color: var(--muted); }
@@ -149,8 +153,8 @@
   .contact-item.selected { background: #e8f0fb; border-right: 3px solid var(--primary); }
   .contact-item.duplicate-flag { border-right: 3px solid var(--orange); }
 
-  .contact-item .school-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
-  .contact-item .city-name { color: var(--muted); font-size: 12px; }
+  .contact-item .school-name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
+  .contact-item .city-name { color: var(--muted); font-size: 13px; }
   .contact-item .level-tag {
     display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-right: 4px;
   }
@@ -177,6 +181,23 @@
     overflow-y: auto;
     background: var(--bg);
     padding: 20px;
+    position: relative;
+  }
+
+  .dup-sticky-bar {
+    position: sticky;
+    top: -20px;
+    z-index: 10;
+    background: var(--bg);
+    padding: 14px 0 10px;
+    border-bottom: 1px solid var(--border);
+    margin: -20px -20px 12px;
+    padding-right: 20px;
+    padding-left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
   }
 
   #empty-state {
@@ -213,8 +234,8 @@
   .info-grid {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
   }
-  .info-item label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
-  .info-item .value { font-size: 13px; font-weight: 500; }
+  .info-item label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+  .info-item .value { font-size: 15px; font-weight: 500; }
   .info-item .value a { color: var(--primary); text-decoration: none; }
   .info-item .value a:hover { text-decoration: underline; }
 
@@ -232,7 +253,14 @@
   .btn-danger { background: var(--red); color: #fff; }
   .btn-sm { padding: 4px 10px; font-size: 12px; }
 
-  .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .action-bar {
+    display: flex; gap: 8px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 5;
+    background: var(--bg);
+    padding: 10px 0 8px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
 
   /* FOLLOW-UP SECTION */
   .followup-box {
@@ -252,8 +280,8 @@
     padding: 12px; margin-bottom: 10px; background: #fafbfc;
     position: relative;
   }
-  .conv-entry .conv-date { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
-  .conv-entry .conv-notes { font-size: 13px; white-space: pre-wrap; line-height: 1.5; }
+  .conv-entry .conv-date { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .conv-entry .conv-notes { font-size: 15px; white-space: pre-wrap; line-height: 1.6; }
   .conv-entry .conv-followup { margin-top: 8px; font-size: 12px; }
   .conv-entry .conv-followup span { background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 10px; }
   .conv-entry .delete-conv { position: absolute; top: 8px; left: 8px; background: none; border: none; cursor: pointer; color: #ccc; font-size: 14px; }
@@ -322,6 +350,32 @@
   /* EDIT INLINE */
   .editable:hover { background: var(--hover); cursor: text; border-radius: 4px; padding: 1px 4px; }
   .edit-input { border: 1px solid var(--primary); border-radius: 4px; padding: 2px 6px; font-size: 13px; outline: none; }
+
+  /* TOOLTIP */
+  .contact-name-tooltip {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dashed var(--muted);
+    display: inline-block;
+  }
+  .contact-tooltip-box {
+    display: none;
+    position: fixed;
+    background: #1e2a3a;
+    color: #eee;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    max-width: 340px;
+    z-index: 9000;
+    box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    line-height: 1.6;
+    pointer-events: none;
+  }
+  .contact-tooltip-box.visible { display: block; }
+  .contact-tooltip-box strong { color: var(--accent); display: block; margin-bottom: 6px; font-size: 15px; }
+  .contact-tooltip-box .tip-entry { border-top: 1px solid #2e3f55; padding-top: 6px; margin-top: 6px; font-size: 13px; }
+  .contact-tooltip-box .tip-date { color: #8899aa; font-size: 12px; }
 
   /* SCROLLBAR */
   ::-webkit-scrollbar { width: 6px; }
@@ -397,7 +451,7 @@
   </div>
 
   <div class="sidebar-section" style="margin-top:auto; padding-top:20px;">
-    <button class="sidebar-btn" onclick="showImportGuide()">📥 ייבוא נתונים</button>
+    <button class="sidebar-btn" onclick="reloadFromJSON()">🔄 טעינה מחדש מהאקסל</button>
     <button class="sidebar-btn" onclick="exportData()">📤 ייצוא JSON</button>
   </div>
 </div>
@@ -409,12 +463,13 @@
     <div id="list-header">
       <h2 id="list-title">אנשי קשר</h2>
       <select id="sort-select" onchange="applyFilters()">
-        <option value="school">מיון: שם ביה"ס</option>
-        <option value="city">מיון: עיר</option>
-        <option value="followup">מיון: תזכורת</option>
-        <option value="recent">מיון: עדכני</option>
+        <option value="school">א-ב שם</option>
+        <option value="city">א-ב עיר</option>
+        <option value="followup">תזכורת קרובה</option>
+        <option value="recent">שיחה אחרונה</option>
       </select>
-      <span id="list-count">0</span>
+      <span id="list-count" style="font-size:12px;color:var(--muted);white-space:nowrap">0</span>
+      <button class="btn btn-primary btn-sm" onclick="openAddContactModal()" title="הוספת קשר חדש" style="white-space:nowrap">+ הוספה</button>
     </div>
     <div id="contact-list"></div>
   </div>
@@ -442,11 +497,16 @@
 
     <!-- DUPLICATES VIEW -->
     <div id="view-duplicates" class="view">
-      <div class="card">
-        <h3>⚠️ אנשי קשר כפולים (זוגות דומים)</h3>
-        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">זוהו בתי ספר עם שם דומה / אותה עיר. בדקי ומזגי נתונים לפי הצורך.</p>
-        <div id="duplicates-list"></div>
+      <div class="dup-sticky-bar">
+        <span style="font-size:16px;font-weight:700">⚠️ כפולים (<span id="dup-count-label">0</span>)</span>
+        <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;margin-right:auto;">
+          <input type="checkbox" id="select-all-dups" onchange="toggleSelectAllDups(this)"> סמני הכל
+        </label>
+        <button class="btn btn-primary btn-sm" onclick="mergeSelected()">🔀 מזגי נבחרים</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑️ מחקי נבחרים (#2)</button>
       </div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;margin-top:4px;">לכל זוג: סמני ✓ לבחירה. "מזגי" — מאחד את השניים ל-#1. "מחקי #2" — מוחק את הכרטיס הימני.</p>
+      <div id="duplicates-list"></div>
     </div>
 
     <!-- STATS VIEW -->
@@ -480,6 +540,7 @@
         <label>סטטוס</label>
         <select id="call-status">
           <option value="talked">דיברתי</option>
+          <option value="whatsapp">התכתבות בWA 💬</option>
           <option value="left-message">השארתי הודעה</option>
           <option value="no-answer">לא ענו</option>
           <option value="sent-email">שלחתי מייל</option>
@@ -517,6 +578,44 @@
   </div>
 </div>
 
+<!-- ADD CONTACT MODAL -->
+<div id="add-contact-overlay" onclick="closeAddContactIfOverlay(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.2);">
+    <h3 style="margin-bottom:18px;font-size:18px">➕ הוספת קשר חדש</h3>
+    <div class="form-row">
+      <div class="form-group"><label>שם בית הספר *</label><input id="nc-school" placeholder="שם ביה&quot;ס..."></div>
+      <div class="form-group"><label>עיר *</label><input id="nc-city" placeholder="עיר..."></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>שלב בחינוך</label>
+        <select id="nc-level">
+          <option value="">---</option>
+          <option value="יסודי">יסודי</option>
+          <option value="חטיבה">חטיבה</option>
+          <option value="תיכון">תיכון</option>
+          <option value="שש שנתי">שש שנתי</option>
+        </select>
+      </div>
+      <div class="form-group"><label>כתובת</label><input id="nc-address" placeholder="כתובת..."></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>טלפון ביה"ס</label><input id="nc-phone" placeholder="09-..."></div>
+      <div class="form-group"><label>נייד איש קשר</label><input id="nc-mobile" placeholder="050-..."></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>שם איש קשר</label><input id="nc-contact" placeholder="שם המנהל / רכזת..."></div>
+      <div class="form-group"><label>מייל</label><input id="nc-email" placeholder="...@"></div>
+    </div>
+    <div class="form-group">
+      <label><input type="checkbox" id="nc-performed" style="margin-left:6px"> הופענו בבית ספר זה בעבר</label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeAddContact()">ביטול</button>
+      <button class="btn btn-primary" onclick="saveNewContact()">💾 הוספה</button>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT CONTACT MODAL -->
 <div id="edit-modal-overlay" onclick="closeEditModalIfOverlay(event)">
   <div id="modal" style="max-width:600px">
@@ -536,7 +635,7 @@ let currentView = 'contacts';
 let activeLevel = '';
 let activeStatus = '';
 
-const STORAGE_KEY = 'um_contacts_v2';
+const STORAGE_KEY = 'um_contacts_v4';
 
 function saveToStorage() {
   try {
@@ -558,6 +657,7 @@ function loadFromStorage() {
 // =================== INIT ===================
 
 async function init() {
+  // returns promise so .then() works
   const loaded = loadFromStorage();
   if (!loaded) {
     // Try to load from contacts_data.json
@@ -581,67 +681,31 @@ async function init() {
 }
 
 function processRawData(raw) {
-  const contacts = [];
-  let id = 1;
-
-  // Process main contacts
-  (raw.contacts || []).forEach(c => {
-    const existing = buildConversationsFromNotes(c);
-    contacts.push({
-      id: 'c' + (id++),
-      source: 'main',
-      city: c.city || '',
-      school: c.school || '',
-      level: normalizeLevel(c.level || ''),
-      address: c.address || '',
-      phone: c.phone || '',
-      contactName: c.contactName || '',
-      mobile: c.mobile || '',
-      email: c.email || '',
-      followUpDate: null,
-      conversations: existing,
-      performedBefore: false,
-      merged: false,
-      mergedFrom: []
-    });
-  });
-
-  // Process leads
-  (raw.leads || []).forEach(c => {
-    contacts.push({
-      id: 'l' + (id++),
-      source: 'leads',
-      city: c.city || '',
-      school: c.school || '',
-      level: normalizeLevel(''),
-      address: '',
-      phone: '',
-      contactName: c.contactName || '',
-      mobile: c.mobile || '',
-      email: '',
-      followUpDate: null,
-      conversations: c.notes ? [{ date: today(), notes: c.notes, followUpDate: null, status: 'talked' }] : [],
-      performedBefore: !!c.performedBefore,
-      merged: false,
-      mergedFrom: []
-    });
-  });
-
-  return contacts;
-}
-
-function buildConversationsFromNotes(c) {
-  const cols = [
-    { date: '2026-05', notes: c.notes9 },
-    { date: '2026-02', notes: c.notes10 },
-    { date: '2026-01', notes: c.notes11 },
-    { date: '2025-12', notes: c.notes12 },
-    { date: '2025-11', notes: c.notes13 },
-    { date: '2025-10', notes: c.notes14 },
-  ];
-  return cols
-    .filter(x => x.notes && x.notes.trim())
-    .map(x => ({ date: x.date, notes: x.notes.trim(), followUpDate: null, status: 'talked' }));
+  // New format: flat array of contacts already with conversations[]
+  const arr = Array.isArray(raw) ? raw : (raw.contacts || []).concat(raw.leads || []);
+  return arr.map(c => ({
+    id: c.id || ('u' + Math.random().toString(36).slice(2)),
+    source: c.source || 'main',
+    city: c.city || '',
+    school: c.school || '',
+    level: normalizeLevel(c.level || ''),
+    address: c.address || '',
+    phone: c.phone || '',
+    contactName: c.contactName || '',
+    mobile: c.mobile || '',
+    email: c.email || '',
+    followUpDate: c.followUpDate || null,
+    followUpReason: c.followUpReason || null,
+    conversations: (c.conversations || []).map(cv => ({
+      date: cv.date || today(),
+      notes: cv.notes || '',
+      status: cv.status || 'talked',
+      followUpDate: cv.followUpDate || null
+    })),
+    performedBefore: !!c.performedBefore,
+    merged: false,
+    mergedFrom: []
+  }));
 }
 
 function normalizeLevel(level) {
@@ -855,8 +919,8 @@ function showContactDetail() {
         <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
         <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(c.level || '—')}</div></div>
         <div class="info-item"><label>טלפון בית ספר</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
-        <div class="info-item"><label>איש קשר</label><div class="value">${escHtml(c.contactName || '—')}</div></div>
-        <div class="info-item"><label>נייד</label><div class="value"><a href="tel:${c.mobile}">${escHtml(c.mobile || '—')}</a></div></div>
+        <div class="info-item"><label>איש קשר</label><div class="value contact-name-tooltip" data-id="${c.id}">${escHtml(c.contactName || '—')}</div></div>
+        <div class="info-item"><label>נייד</label><div class="value">${phoneLinks(c.mobile)}</div></div>
         <div class="info-item"><label>מייל</label><div class="value"><a href="mailto:${c.email}">${escHtml(c.email || '—')}</a></div></div>
       </div>
     </div>
@@ -887,7 +951,7 @@ function formatDate(d) {
 }
 
 function statusLabel(s) {
-  const map = { 'talked': 'שיחה', 'left-message': 'הודעה', 'no-answer': 'לא ענו', 'sent-email': 'מייל', 'not-interested': 'לא מעוניינים', 'booked': '🎉 הוזמן!' };
+  const map = { 'talked': '📞 שיחה', 'whatsapp': '💬 WA', 'left-message': '📨 הודעה', 'no-answer': '🔇 לא ענו', 'sent-email': '📧 מייל', 'not-interested': '✖ לא מעוניינים', 'booked': '🎉 הוזמן!' };
   return map[s] || s;
 }
 
@@ -1161,66 +1225,128 @@ function normalizeSchoolName(name) {
 }
 
 function renderDuplicates() {
+  document.getElementById('dup-count-label').textContent = duplicatePairs.length;
+  document.getElementById('select-all-dups').checked = false;
+
   if (duplicatePairs.length === 0) {
-    document.getElementById('duplicates-list').innerHTML = '<p style="color:var(--green)">✓ לא נמצאו כפולים</p>';
+    document.getElementById('duplicates-list').innerHTML = '<p style="color:var(--green)">✓ לא נמצאו כפולים 🎉</p>';
     return;
   }
 
-  const html = duplicatePairs.slice(0, 50).map(([a, b], idx) => `
-    <div class="dup-pair">
-      <h4>זוג כפול #${idx + 1}</h4>
-      <div class="dup-schools">
-        <div class="dup-school">
-          <strong>${escHtml(a.school)}</strong>
-          ${escHtml(a.city)} · ${escHtml(a.level)}<br>
-          <small>${escHtml(a.contactName)} ${escHtml(a.mobile)}</small><br>
-          <small>${(a.conversations||[]).length} שיחות מתועדות</small>
-        </div>
-        <div style="display:flex;align-items:center;padding:0 8px;color:var(--muted)">⇔</div>
-        <div class="dup-school">
-          <strong>${escHtml(b.school)}</strong>
-          ${escHtml(b.city)} · ${escHtml(b.level)}<br>
-          <small>${escHtml(b.contactName)} ${escHtml(b.mobile)}</small><br>
-          <small>${(b.conversations||[]).length} שיחות מתועדות</small>
+  const html = duplicatePairs.map(([a, b], idx) => `
+    <div class="dup-pair" data-idx="${idx}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <input type="checkbox" class="dup-checkbox" data-idx="${idx}" onchange="updateBulkButtons()">
+        <span style="font-size:12px;color:var(--muted)">זוג #${idx + 1}</span>
+        <div style="margin-right:auto;display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="selectContact('${a.id}')">פתחי #1</button>
+          <button class="btn btn-outline btn-sm" onclick="selectContact('${b.id}')">פתחי #2</button>
+          <button class="btn btn-success btn-sm" onclick="mergeContacts('${a.id}','${b.id}',${idx})">🔀 מזגי</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteContact('${b.id}',${idx})">🗑️ מחקי #2</button>
         </div>
       </div>
-      <div style="margin-top:8px;display:flex;gap:8px">
-        <button class="btn btn-outline btn-sm" onclick="selectContact('${a.id}')">פתחי #1</button>
-        <button class="btn btn-outline btn-sm" onclick="selectContact('${b.id}')">פתחי #2</button>
-        <button class="btn btn-danger btn-sm" onclick="mergeContacts('${a.id}', '${b.id}', ${idx})">מזגי ל-#1</button>
+      <div class="dup-schools">
+        <div class="dup-school">
+          <strong>#1 ${escHtml(a.school)}</strong>
+          ${escHtml(a.city)} · ${escHtml(a.level)}<br>
+          <small>${escHtml(a.contactName)} ${a.mobile ? '· ' + escHtml(a.mobile) : ''}</small><br>
+          <small style="color:var(--primary)">${(a.conversations||[]).length} שיחות מתועדות</small>
+        </div>
+        <div style="display:flex;align-items:center;padding:0 8px;color:var(--muted);font-size:18px;">⇔</div>
+        <div class="dup-school">
+          <strong>#2 ${escHtml(b.school)}</strong>
+          ${escHtml(b.city)} · ${escHtml(b.level)}<br>
+          <small>${escHtml(b.contactName)} ${b.mobile ? '· ' + escHtml(b.mobile) : ''}</small><br>
+          <small style="color:var(--primary)">${(b.conversations||[]).length} שיחות מתועדות</small>
+        </div>
       </div>
     </div>
   `).join('');
   document.getElementById('duplicates-list').innerHTML = html;
 }
 
+function toggleSelectAllDups(cb) {
+  document.querySelectorAll('.dup-checkbox').forEach(c => c.checked = cb.checked);
+}
+
+function getSelectedPairIndices() {
+  return [...document.querySelectorAll('.dup-checkbox:checked')].map(c => parseInt(c.dataset.idx));
+}
+
+function updateBulkButtons() {
+  // visual feedback only — buttons always visible
+}
+
+function mergeSelected() {
+  const indices = getSelectedPairIndices();
+  if (indices.length === 0) { showToast('לא נבחרו זוגות'); return; }
+  // process in reverse order so indices stay valid
+  indices.sort((a, b) => b - a).forEach(idx => {
+    const pair = duplicatePairs[idx];
+    if (!pair) return;
+    doMerge(pair[0], pair[1]);
+    duplicatePairs.splice(idx, 1);
+  });
+  saveToStorage();
+  applyFilters();
+  renderDuplicates();
+  updateBadges();
+  showToast(`מוזגו ${indices.length} זוגות ✓`);
+}
+
+function deleteSelected() {
+  const indices = getSelectedPairIndices();
+  if (indices.length === 0) { showToast('לא נבחרו זוגות'); return; }
+  if (!confirm(`למחוק ${indices.length} כרטיסים (#2 של כל זוג)?`)) return;
+  indices.sort((a, b) => b - a).forEach(idx => {
+    const pair = duplicatePairs[idx];
+    if (!pair) return;
+    allContacts = allContacts.filter(c => c.id !== pair[1].id);
+    duplicatePairs.splice(idx, 1);
+  });
+  saveToStorage();
+  applyFilters();
+  renderDuplicates();
+  updateBadges();
+  showToast(`נמחקו ${indices.length} כרטיסים ✓`);
+}
+
+function deleteContact(id, pairIdx) {
+  if (!confirm('למחוק כרטיס זה לצמיתות?')) return;
+  allContacts = allContacts.filter(c => c.id !== id);
+  duplicatePairs.splice(pairIdx, 1);
+  saveToStorage();
+  applyFilters();
+  renderDuplicates();
+  updateBadges();
+  showToast('הכרטיס נמחק ✓');
+}
+
 function mergeContacts(idA, idB, pairIdx) {
   const a = allContacts.find(c => c.id === idA);
   const b = allContacts.find(c => c.id === idB);
   if (!a || !b) return;
-
-  // Merge b into a - prefer non-empty values from b
-  if (!a.contactName && b.contactName) a.contactName = b.contactName;
-  if (!a.mobile && b.mobile) a.mobile = b.mobile;
-  if (!a.email && b.email) a.email = b.email;
-  if (!a.phone && b.phone) a.phone = b.phone;
-  if (!a.address && b.address) a.address = b.address;
-  if (!a.followUpDate && b.followUpDate) a.followUpDate = b.followUpDate;
-
-  // Merge conversations
-  a.conversations = [...(a.conversations || []), ...(b.conversations || [])];
-  a.conversations.sort((x, y) => y.date.localeCompare(x.date));
-
-  // Mark b as merged
-  b.merged = true;
+  doMerge(a, b);
   allContacts = allContacts.filter(c => c.id !== idB);
-
   duplicatePairs.splice(pairIdx, 1);
   saveToStorage();
   applyFilters();
   renderDuplicates();
   updateBadges();
   showToast('הקשרים מוזגו בהצלחה ✓');
+}
+
+function doMerge(a, b) {
+  if (!a.contactName && b.contactName) a.contactName = b.contactName;
+  if (!a.mobile && b.mobile) a.mobile = b.mobile;
+  if (!a.email && b.email) a.email = b.email;
+  if (!a.phone && b.phone) a.phone = b.phone;
+  if (!a.address && b.address) a.address = b.address;
+  if (!a.level && b.level) a.level = b.level;
+  if (!a.followUpDate && b.followUpDate) { a.followUpDate = b.followUpDate; a.followUpReason = b.followUpReason; }
+  a.conversations = [...(a.conversations || []), ...(b.conversations || [])];
+  a.conversations.sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+  if (b.performedBefore) a.performedBefore = true;
 }
 
 // =================== STATS ===================
@@ -1291,8 +1417,35 @@ function exportData() {
   showToast('הנתונים יוצאו בהצלחה ✓');
 }
 
-function showImportGuide() {
-  alert('לייבוא נתונים:\n1. הנחי את קובץ contacts_data.json בתיקיית האפליקציה\n2. רענני את הדף\n\nאו גרור קובץ JSON לחלון זה');
+async function reloadFromJSON() {
+  if (!confirm('פעולה זו תטעין מחדש את כל הנתונים מהאקסל (contacts_data.json).\nשיחות ותזכורות שהוספת ידנית באפליקציה יישמרו.\nלהמשיך?')) return;
+  try {
+    const resp = await fetch('contacts_data.json?t=' + Date.now());
+    const raw = await resp.json();
+    const fresh = processRawData(raw);
+    // Merge manual additions: keep conversations & followUpDate from existing localStorage
+    const existing = {};
+    allContacts.forEach(c => { existing[c.id] = c; });
+    const merged = fresh.map(c => {
+      const old = existing[c.id];
+      if (old) {
+        // Keep manual conversations added in app, merge with imported
+        const importedDates = new Set(c.conversations.map(x => x.date + x.notes.slice(0,20)));
+        const manualConvos = (old.conversations || []).filter(x => !importedDates.has(x.date + x.notes.slice(0,20)));
+        return { ...c, conversations: [...c.conversations, ...manualConvos].sort((a,b) => (b.date||'').localeCompare(a.date||'')), followUpDate: old.followUpDate || c.followUpDate, followUpReason: old.followUpReason || c.followUpReason, contactName: old.contactName || c.contactName, mobile: old.mobile || c.mobile };
+      }
+      return c;
+    });
+    allContacts = merged;
+    saveToStorage();
+    applyFilters();
+    detectDuplicates();
+    updateBadges();
+    renderStats();
+    showToast('✓ נטענו ' + allContacts.length + ' קשרים מהאקסל');
+  } catch(e) {
+    showToast('שגיאה בטעינה: ' + e.message);
+  }
 }
 
 // =================== DRAG & DROP IMPORT ===================
@@ -1325,6 +1478,143 @@ document.addEventListener('drop', e => {
   reader.readAsText(file, 'utf-8');
 });
 
+// =================== PHONE / WHATSAPP ===================
+
+const BUSINESS_PHONE = '972535544076'; // 053-5544076
+
+function formatPhoneForWA(phone) {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (!digits) return null;
+  // Convert Israeli local format to international
+  if (digits.startsWith('0')) return '972' + digits.slice(1);
+  if (digits.startsWith('972')) return digits;
+  return '972' + digits;
+}
+
+function phoneLinks(phone) {
+  if (!phone || phone === '—') return '—';
+  const waNum = formatPhoneForWA(phone);
+  const waUrl = waNum ? `https://wa.me/${waNum}?source_id=${BUSINESS_PHONE}` : null;
+  // WhatsApp Web link — opens in Chrome with active WA session
+  const waLink = waUrl ? `<a href="${waUrl}" target="_blank" title="פתח WhatsApp" style="margin-right:8px">💬</a>` : '';
+  return `<a href="tel:${phone}">${escHtml(phone)}</a>${waLink}`;
+}
+
+// =================== TOOLTIP ===================
+
+let tooltipEl = null;
+
+function initTooltip() {
+  tooltipEl = document.createElement('div');
+  tooltipEl.className = 'contact-tooltip-box';
+  document.body.appendChild(tooltipEl);
+
+  document.addEventListener('mouseover', e => {
+    const el = e.target.closest('.contact-name-tooltip');
+    if (!el) return;
+    const id = el.dataset.id;
+    const c = allContacts.find(x => x.id === id);
+    if (!c) return;
+
+    let html = `<strong>${escHtml(c.contactName || '—')}</strong>`;
+    if (c.school) html += `<div style="font-size:13px;color:#aab5c3;margin-bottom:6px">${escHtml(c.school)}</div>`;
+    if (c.mobile) html += `<div>📱 ${escHtml(c.mobile)}</div>`;
+    if (c.email) html += `<div>✉️ ${escHtml(c.email)}</div>`;
+
+    const convos = (c.conversations || []).slice(0, 5);
+    if (convos.length > 0) {
+      html += `<div class="tip-entry"><div style="color:var(--accent);font-weight:600;margin-bottom:4px">היסטוריית שיחות:</div>`;
+      convos.forEach(cv => {
+        html += `<div style="margin-bottom:6px"><span class="tip-date">${formatDate(cv.date)} ${cv.status ? '· ' + statusLabel(cv.status) : ''}</span><br>${escHtml(cv.notes.slice(0, 120))}${cv.notes.length > 120 ? '...' : ''}</div>`;
+      });
+      if (c.conversations.length > 5) html += `<div style="color:#8899aa;font-size:12px">+ עוד ${c.conversations.length - 5} שיחות</div>`;
+      html += '</div>';
+    } else {
+      html += `<div class="tip-entry" style="color:#8899aa">אין שיחות מתועדות</div>`;
+    }
+
+    tooltipEl.innerHTML = html;
+    tooltipEl.classList.add('visible');
+    positionTooltip(e);
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (tooltipEl.classList.contains('visible')) positionTooltip(e);
+    if (!e.target.closest('.contact-name-tooltip')) tooltipEl.classList.remove('visible');
+  });
+}
+
+function positionTooltip(e) {
+  const x = e.clientX;
+  const y = e.clientY;
+  const tw = tooltipEl.offsetWidth || 340;
+  const th = tooltipEl.offsetHeight || 200;
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  tooltipEl.style.left = (x + tw + 16 > vw ? x - tw - 8 : x + 16) + 'px';
+  tooltipEl.style.top  = (y + th + 16 > vh ? y - th - 8 : y + 16) + 'px';
+}
+
+// =================== ADD CONTACT ===================
+
+function openAddContactModal() {
+  ['nc-school','nc-city','nc-address','nc-phone','nc-mobile','nc-contact','nc-email'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('nc-level').value = '';
+  document.getElementById('nc-performed').checked = false;
+  const overlay = document.getElementById('add-contact-overlay');
+  overlay.style.display = 'flex';
+  setTimeout(() => document.getElementById('nc-school').focus(), 100);
+}
+
+function closeAddContact() {
+  document.getElementById('add-contact-overlay').style.display = 'none';
+}
+
+function closeAddContactIfOverlay(e) {
+  if (e.target === document.getElementById('add-contact-overlay')) closeAddContact();
+}
+
+function saveNewContact() {
+  const school = document.getElementById('nc-school').value.trim();
+  const city = document.getElementById('nc-city').value.trim();
+  if (!school) { showToast('נא להזין שם בית ספר'); return; }
+
+  const newContact = {
+    id: 'u' + Date.now(),
+    source: 'manual',
+    school,
+    city,
+    level: document.getElementById('nc-level').value,
+    address: document.getElementById('nc-address').value.trim(),
+    phone: document.getElementById('nc-phone').value.trim(),
+    mobile: document.getElementById('nc-mobile').value.trim(),
+    contactName: document.getElementById('nc-contact').value.trim(),
+    email: document.getElementById('nc-email').value.trim(),
+    performedBefore: document.getElementById('nc-performed').checked,
+    followUpDate: null,
+    conversations: [],
+    merged: false,
+    mergedFrom: []
+  };
+
+  allContacts.push(newContact);
+  saveToStorage();
+
+  // Add city to filter if new
+  const sel = document.getElementById('city-filter');
+  if (city && ![...sel.options].find(o => o.value === city)) {
+    const opt = document.createElement('option');
+    opt.value = city; opt.textContent = city;
+    sel.appendChild(opt);
+  }
+
+  applyFilters();
+  closeAddContact();
+  selectContact(newContact.id);
+  showToast('הקשר נוסף בהצלחה ✓');
+}
+
 // =================== TOAST ===================
 
 let toastTimer;
@@ -1347,7 +1637,7 @@ document.addEventListener('keydown', e => {
 
 // =================== START ===================
 
-init();
+init().then(() => initTooltip());
 </script>
 </body>
 </html>
