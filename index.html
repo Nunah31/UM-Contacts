@@ -1117,6 +1117,7 @@ function showContactDetail() {
       <button class="btn btn-outline" onclick="setFollowUp()">🔔 קביעת תזכורת</button>
       <button class="btn btn-outline" onclick="editContact()">✏️ עריכת פרטים</button>
       ${c.performedBefore ? '' : '<button class="btn btn-success btn-sm" onclick="markPerformed()">✓ סמני הופענו</button>'}
+      <button class="btn btn-danger btn-sm" onclick="deleteCurrentContact()" title="מחיקת קשר">🗑️ מחיקה</button>
     </div>
 
     <div class="card">
@@ -1246,6 +1247,21 @@ function deleteConv(idx) {
   selectedContact.conversations.splice(idx, 1);
   saveToStorage();
   showContactDetail();
+}
+
+function deleteCurrentContact() {
+  if (!selectedContact) return;
+  if (!confirm(`למחוק את "${selectedContact.school}" לצמיתות?\nלא ניתן לשחזר.`)) return;
+  allContacts = allContacts.filter(c => c.id !== selectedContact.id);
+  selectedContact = null;
+  saveToStorage();
+  applyFilters();
+  detectDuplicates();
+  updateBadges();
+  document.getElementById('view-contact-detail').classList.remove('active');
+  document.getElementById('empty-state').style.display = 'flex';
+  if (typeof mobileBack === 'function' && isMobile()) mobileBack();
+  showToast('הקשר נמחק ✓');
 }
 
 function markPerformed() {
