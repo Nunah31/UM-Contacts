@@ -1,5 +1,6 @@
 const CACHE = 'um-contacts-v1';
-const FILES = ['/', '/index.html', '/icon.png', '/contacts_data.json'];
+const BASE = self.location.pathname.replace('/sw.js', '');
+const FILES = [BASE + '/', BASE + '/index.html', BASE + '/icon.png', BASE + '/contacts_data.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).catch(() => {}));
