@@ -468,13 +468,19 @@
     #mobile-nav { display: block; }
     #mobile-header { display: flex; }
 
+    #mobile-filter-bar { display: block !important; }
+
     #main {
       flex-direction: column;
       position: fixed;
-      top: 56px;
+      top: 106px;
       bottom: 68px;
       left: 0; right: 0;
       overflow: hidden;
+    }
+
+    #view-reminders, #view-duplicates, #view-stats {
+      top: 106px !important;
     }
 
     /* LIST PANEL — full screen, scrollable */
@@ -522,14 +528,15 @@
       transform: translateX(0);
     }
 
-    /* SECONDARY VIEWS */
+    /* SECONDARY VIEWS — fixed overlay over #main */
     #view-reminders, #view-duplicates, #view-stats {
-      position: absolute;
-      top: 0; bottom: 0; left: 0; right: 0;
+      position: fixed;
+      top: 56px; bottom: 68px; left: 0; right: 0;
       background: var(--bg);
       padding: 16px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      z-index: 40;
       display: none;
     }
     #view-reminders.active, #view-duplicates.active, #view-stats.active {
@@ -585,6 +592,20 @@
 <div id="mobile-search-bar">
   <input type="text" id="mobile-search-input" placeholder="חיפוש..." oninput="onMobileSearch(this.value)" dir="rtl">
   <button class="mobile-search-cancel" onclick="closeMobileSearch()">ביטול</button>
+</div>
+
+<!-- MOBILE FILTER BAR -->
+<div id="mobile-filter-bar" style="display:none;position:fixed;top:56px;left:0;right:0;z-index:90;background:#fff;border-bottom:1px solid var(--border);padding:8px 12px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;">
+  <span class="filter-chip active" data-mob-level="" onclick="mobFilterLevel(this,'')">הכל</span>
+  <span class="filter-chip" data-mob-level="יסודי" onclick="mobFilterLevel(this,'יסודי')">יסודי</span>
+  <span class="filter-chip" data-mob-level="חטיבה" onclick="mobFilterLevel(this,'חטיבה')">חטיבה</span>
+  <span class="filter-chip" data-mob-level="תיכון" onclick="mobFilterLevel(this,'תיכון')">תיכון</span>
+  <span class="filter-chip" data-mob-level="שש" onclick="mobFilterLevel(this,'שש')">שש שנתי</span>
+  <span style="display:inline-block;width:1px;height:20px;background:var(--border);margin:0 6px;vertical-align:middle"></span>
+  <span class="filter-chip" data-mob-status="" onclick="mobFilterStatus(this,'')">כל סטטוס</span>
+  <span class="filter-chip" data-mob-status="overdue" onclick="mobFilterStatus(this,'overdue')">⏰ באיחור</span>
+  <span class="filter-chip" data-mob-status="today" onclick="mobFilterStatus(this,'today')">📅 היום</span>
+  <span class="filter-chip" data-mob-status="has-convo" onclick="mobFilterStatus(this,'has-convo')">💬 עם היסטוריה</span>
 </div>
 
 <!-- MOBILE BOTTOM NAV -->
@@ -1085,9 +1106,10 @@ function showContactDetail() {
     </div>`;
   }
 
-  const convHtml = (c.conversations || []).map((conv, i) => `
+  const sortedConvos = [...(c.conversations || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const convHtml = sortedConvos.map((conv, i) => `
     <div class="conv-entry">
-      <button class="delete-conv" onclick="deleteConv(${i})" title="מחיקה">✕</button>
+      <button class="delete-conv" onclick="deleteConv('${conv.date}','${conv.notes.slice(0,20).replace(/'/g,'')}'')" title="מחיקה">✕</button>
       <div class="conv-date">${formatDate(conv.date)} ${conv.status ? ' · ' + statusLabel(conv.status) : ''}</div>
       <div class="conv-notes">${escHtml(conv.notes)}</div>
       ${conv.followUpDate ? `<div class="conv-followup">תזכורת: <span>${formatDate(conv.followUpDate)}</span></div>` : ''}
@@ -1242,9 +1264,10 @@ function clearFollowUp() {
   showToast('תזכורת בוטלה');
 }
 
-function deleteConv(idx) {
+function deleteConv(date, notePrefix) {
   if (!confirm('למחוק שיחה זו?')) return;
-  selectedContact.conversations.splice(idx, 1);
+  const idx = selectedContact.conversations.findIndex(c => c.date === date && c.notes.slice(0,20).replace(/'/g,'') === notePrefix);
+  if (idx !== -1) selectedContact.conversations.splice(idx, 1);
   saveToStorage();
   showContactDetail();
 }
@@ -1939,6 +1962,24 @@ function closeMobileSearch() {
 
 function onMobileSearch(val) {
   document.getElementById('search-box').value = val;
+  applyFilters();
+}
+
+function mobFilterLevel(el, level) {
+  document.querySelectorAll('[data-mob-level]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeLevel = level;
+  // sync desktop filter
+  document.querySelectorAll('#level-filters .filter-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.level === level);
+  });
+  applyFilters();
+}
+
+function mobFilterStatus(el, status) {
+  document.querySelectorAll('[data-mob-status]').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeStatus = status;
   applyFilters();
 }
 
