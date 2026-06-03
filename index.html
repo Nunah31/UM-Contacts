@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ניהול קשרים - UM Shows</title>
+<style>
+  :root {
+    --primary: #2c6fad;
+    --primary-dark: #1e4f7e;
+    --accent: #f0a500;
+    --green: #27ae60;
+    --red: #e74c3c;
+    --orange: #e67e22;
+    --bg: #f4f6f9;
+    --sidebar-bg: #1e2a3a;
+    --card-bg: #ffffff;
+    --text: #1a1a2e;
+    --muted: #6c757d;
+    --border: #dee2e6;
+    --hover: #eef3f8;
+    --tag-elementary: #d4edda;
+    --tag-middle: #fff3cd;
+    --tag-high: #f8d7da;
+    --tag-six: #d1ecf1;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    font-size: 14px;
+  }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--sidebar-bg);
+    color: #cdd5e0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 10;
+  }
+
+  #sidebar h1 {
+    padding: 18px 16px 12px;
+    font-size: 16px;
+    color: #fff;
+    border-bottom: 1px solid #2e3f55;
+    line-height: 1.3;
+  }
+  #sidebar h1 span { display: block; font-size: 11px; color: #8899aa; font-weight: normal; margin-top: 2px; }
+
+  .sidebar-section { padding: 12px 14px 6px; }
+  .sidebar-section label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: #8899aa; margin-bottom: 6px; }
+
+  .sidebar-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 6px; cursor: pointer;
+    color: #cdd5e0; font-size: 13px; transition: background .15s;
+    border: none; background: none; width: 100%; text-align: right;
+  }
+  .sidebar-btn:hover, .sidebar-btn.active { background: #2e3f55; color: #fff; }
+  .sidebar-btn .badge {
+    margin-right: auto; background: var(--accent); color: #fff;
+    border-radius: 10px; font-size: 11px; padding: 1px 6px; min-width: 20px; text-align: center;
+  }
+  .sidebar-btn .badge.red { background: var(--red); }
+  .sidebar-btn .badge.green { background: var(--green); }
+
+  #search-box {
+    padding: 8px 14px;
+    background: #2e3f55;
+    border: none;
+    color: #fff;
+    width: 100%;
+    font-size: 13px;
+    border-radius: 6px;
+    margin: 8px 0;
+    outline: none;
+  }
+  #search-box::placeholder { color: #7a8fa6; }
+
+  .filter-chip {
+    display: inline-block;
+    padding: 3px 10px; margin: 2px;
+    border-radius: 12px; font-size: 12px; cursor: pointer;
+    border: 1px solid #3a5070; color: #aab5c3;
+    transition: all .15s;
+  }
+  .filter-chip:hover, .filter-chip.active {
+    background: var(--primary); border-color: var(--primary); color: #fff;
+  }
+
+  /* MAIN AREA */
+  #main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* CONTACT LIST */
+  #list-panel {
+    width: 340px;
+    min-width: 280px;
+    background: var(--card-bg);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #list-header {
+    padding: 12px 14px;
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  #list-header h2 { font-size: 14px; flex: 1; }
+  #list-count { font-size: 12px; color: var(--muted); }
+
+  #sort-select {
+    font-size: 12px; border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 6px; color: var(--text); background: #fff;
+  }
+
+  #contact-list {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .contact-item {
+    padding: 10px 14px;
+    border-bottom: 1px solid #f0f2f5;
+    cursor: pointer;
+    transition: background .1s;
+    position: relative;
+  }
+  .contact-item:hover { background: var(--hover); }
+  .contact-item.selected { background: #e8f0fb; border-right: 3px solid var(--primary); }
+  .contact-item.duplicate-flag { border-right: 3px solid var(--orange); }
+
+  .contact-item .school-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .contact-item .city-name { color: var(--muted); font-size: 12px; }
+  .contact-item .level-tag {
+    display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 8px; margin-right: 4px;
+  }
+  .tag-יסודי { background: var(--tag-elementary); color: #155724; }
+  .tag-חטיבה { background: var(--tag-middle); color: #856404; }
+  .tag-תיכון { background: var(--tag-high); color: #721c24; }
+  .tag-שש { background: var(--tag-six); color: #0c5460; }
+  .tag-other { background: #e2e3e5; color: #383d41; }
+
+  .contact-item .follow-up-indicator {
+    position: absolute; top: 10px; left: 14px;
+    width: 8px; height: 8px; border-radius: 50%;
+  }
+  .indicator-overdue { background: var(--red); }
+  .indicator-today { background: var(--orange); }
+  .indicator-soon { background: var(--accent); }
+  .indicator-ok { background: var(--green); }
+
+  .contact-item .last-note { font-size: 11px; color: var(--muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* DETAIL PANEL */
+  #detail-panel {
+    flex: 1;
+    overflow-y: auto;
+    background: var(--bg);
+    padding: 20px;
+  }
+
+  #empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    font-size: 15px;
+    gap: 12px;
+  }
+  #empty-state .icon { font-size: 48px; }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: 10px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .card h3 { font-size: 14px; color: var(--muted); margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+  .detail-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+  .detail-header .school-icon {
+    width: 52px; height: 52px; border-radius: 12px;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .detail-header h2 { font-size: 20px; margin-bottom: 4px; }
+  .detail-header .meta { color: var(--muted); font-size: 13px; }
+
+  .info-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .info-item label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+  .info-item .value { font-size: 13px; font-weight: 500; }
+  .info-item .value a { color: var(--primary); text-decoration: none; }
+  .info-item .value a:hover { text-decoration: underline; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 6px; border: none;
+    font-size: 13px; cursor: pointer; transition: all .15s; font-family: inherit;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-success:hover { background: #219150; }
+  .btn-outline { background: #fff; color: var(--primary); border: 1px solid var(--primary); }
+  .btn-outline:hover { background: var(--hover); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+  .action-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+
+  /* FOLLOW-UP SECTION */
+  .followup-box {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 8px; margin-bottom: 16px;
+  }
+  .followup-overdue { background: #fdecea; border: 1px solid #f5c6cb; }
+  .followup-today { background: #fff3e0; border: 1px solid #ffe0b2; }
+  .followup-soon { background: #fffde7; border: 1px solid #fff176; }
+  .followup-none { background: #f8f9fa; border: 1px solid var(--border); }
+  .followup-box .followup-text { flex: 1; font-size: 13px; }
+  .followup-box .followup-text strong { display: block; }
+
+  /* CONVERSATION LOG */
+  .conv-entry {
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px; margin-bottom: 10px; background: #fafbfc;
+    position: relative;
+  }
+  .conv-entry .conv-date { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .conv-entry .conv-notes { font-size: 13px; white-space: pre-wrap; line-height: 1.5; }
+  .conv-entry .conv-followup { margin-top: 8px; font-size: 12px; }
+  .conv-entry .conv-followup span { background: var(--accent); color: #fff; padding: 2px 8px; border-radius: 10px; }
+  .conv-entry .delete-conv { position: absolute; top: 8px; left: 8px; background: none; border: none; cursor: pointer; color: #ccc; font-size: 14px; }
+  .conv-entry .delete-conv:hover { color: var(--red); }
+
+  /* ADD CALL MODAL */
+  #modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+
+  #modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 28px;
+    width: 520px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    direction: rtl;
+    box-shadow: 0 8px 40px rgba(0,0,0,.2);
+  }
+  #modal h3 { margin-bottom: 18px; font-size: 18px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+  .form-group input, .form-group textarea, .form-group select {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 7px; font-size: 14px; font-family: inherit;
+    outline: none; transition: border .15s; direction: rtl;
+  }
+  .form-group input:focus, .form-group textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(44,111,173,.15); }
+  .form-group textarea { resize: vertical; min-height: 90px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* DUPLICATE PANEL */
+  .dup-pair {
+    background: #fff8f0; border: 1px solid #ffe0b2;
+    border-radius: 8px; padding: 12px; margin-bottom: 10px;
+  }
+  .dup-pair h4 { font-size: 13px; margin-bottom: 8px; }
+  .dup-schools { display: flex; gap: 10px; }
+  .dup-school { flex: 1; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 12px; }
+  .dup-school strong { display: block; font-size: 13px; margin-bottom: 4px; }
+
+  /* REMINDERS */
+  #reminder-banner {
+    position: fixed; top: 0; left: 0; right: 0;
+    background: var(--red); color: #fff;
+    padding: 10px 20px; text-align: center; font-size: 14px;
+    z-index: 2000; display: none; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+
+  /* STATS */
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stat-card { background: var(--card-bg); border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .stat-card .stat-num { font-size: 28px; font-weight: 700; color: var(--primary); }
+  .stat-card .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* EDIT INLINE */
+  .editable:hover { background: var(--hover); cursor: text; border-radius: 4px; padding: 1px 4px; }
+  .edit-input { border: 1px solid var(--primary); border-radius: 4px; padding: 2px 6px; font-size: 13px; outline: none; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c1c9d4; border-radius: 3px; }
+
+  /* VIEWS */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Toast */
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #333; color: #fff; padding: 10px 20px; border-radius: 8px;
+    font-size: 13px; z-index: 3000; display: none; animation: fadeUp .3s;
+  }
+  @keyframes fadeUp { from { opacity:0; transform: translateX(-50%) translateY(10px); } to { opacity:1; transform: translateX(-50%) translateY(0); } }
+
+  .highlight { background: #fff9c4; }
+
+  #no-results { padding: 30px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div id="reminder-banner" onclick="dismissReminder()">
+  🔔 יש לך <span id="reminder-count"></span> תזכורות להיום! לחצי לצפייה
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <h1>UM Shows<span>ניהול קשרים</span></h1>
+
+  <div class="sidebar-section">
+    <input type="text" id="search-box" placeholder="🔍 חיפוש בית ספר / עיר / איש קשר..." oninput="applyFilters()">
+  </div>
+
+  <div class="sidebar-section">
+    <label>תצוגה</label>
+    <button class="sidebar-btn active" onclick="setView('contacts', this)">📋 כל אנשי הקשר <span class="badge" id="badge-all">0</span></button>
+    <button class="sidebar-btn" onclick="setView('reminders', this)">🔔 תזכורות <span class="badge red" id="badge-reminders">0</span></button>
+    <button class="sidebar-btn" onclick="setView('duplicates', this)">⚠️ כפולים <span class="badge" style="background:#e67e22" id="badge-dups">0</span></button>
+    <button class="sidebar-btn" onclick="setView('stats', this)">📊 סטטיסטיקות</button>
+  </div>
+
+  <div class="sidebar-section">
+    <label>שלב בחינוך</label>
+    <div id="level-filters">
+      <span class="filter-chip active" data-level="" onclick="toggleLevelFilter(this, '')">הכל</span>
+      <span class="filter-chip" data-level="יסודי" onclick="toggleLevelFilter(this, 'יסודי')">יסודי</span>
+      <span class="filter-chip" data-level="חטיבה" onclick="toggleLevelFilter(this, 'חטיבה')">חטיבה</span>
+      <span class="filter-chip" data-level="תיכון" onclick="toggleLevelFilter(this, 'תיכון')">תיכון</span>
+      <span class="filter-chip" data-level="שש" onclick="toggleLevelFilter(this, 'שש')">שש שנתי</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <label>סטטוס מעקב</label>
+    <div>
+      <span class="filter-chip active" data-status="" onclick="toggleStatusFilter(this, '')">הכל</span>
+      <span class="filter-chip" data-status="overdue" onclick="toggleStatusFilter(this, 'overdue')">⏰ באיחור</span>
+      <span class="filter-chip" data-status="today" onclick="toggleStatusFilter(this, 'today')">📅 היום</span>
+      <span class="filter-chip" data-status="no-followup" onclick="toggleStatusFilter(this, 'no-followup')">✅ ללא תזכורת</span>
+      <span class="filter-chip" data-status="has-convo" onclick="toggleStatusFilter(this, 'has-convo')">💬 עם היסטוריה</span>
+    </div>
+  </div>
+
+  <div class="sidebar-section">
+    <label>עיר / אזור</label>
+    <select id="city-filter" onchange="applyFilters()" style="width:100%;padding:6px;border-radius:5px;border:1px solid #3a5070;background:#2e3f55;color:#cdd5e0;font-size:12px;">
+      <option value="">כל הערים</option>
+    </select>
+  </div>
+
+  <div class="sidebar-section" style="margin-top:auto; padding-top:20px;">
+    <button class="sidebar-btn" onclick="showImportGuide()">📥 ייבוא נתונים</button>
+    <button class="sidebar-btn" onclick="exportData()">📤 ייצוא JSON</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- LIST PANEL -->
+  <div id="list-panel">
+    <div id="list-header">
+      <h2 id="list-title">אנשי קשר</h2>
+      <select id="sort-select" onchange="applyFilters()">
+        <option value="school">מיון: שם ביה"ס</option>
+        <option value="city">מיון: עיר</option>
+        <option value="followup">מיון: תזכורת</option>
+        <option value="recent">מיון: עדכני</option>
+      </select>
+      <span id="list-count">0</span>
+    </div>
+    <div id="contact-list"></div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div id="detail-panel">
+    <div id="empty-state">
+      <div class="icon">🏫</div>
+      <div>בחרי בית ספר מהרשימה כדי לראות פרטים</div>
+      <div style="font-size:12px;color:#aaa">או השתמשי בחיפוש למציאת קשרים</div>
+    </div>
+
+    <!-- CONTACTS VIEW -->
+    <div id="view-contact-detail" class="view">
+      <!-- filled dynamically -->
+    </div>
+
+    <!-- REMINDERS VIEW -->
+    <div id="view-reminders" class="view">
+      <div class="card">
+        <h3>🔔 תזכורות - לחזור אל</h3>
+        <div id="reminders-list"></div>
+      </div>
+    </div>
+
+    <!-- DUPLICATES VIEW -->
+    <div id="view-duplicates" class="view">
+      <div class="card">
+        <h3>⚠️ אנשי קשר כפולים (זוגות דומים)</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">זוהו בתי ספר עם שם דומה / אותה עיר. בדקי ומזגי נתונים לפי הצורך.</p>
+        <div id="duplicates-list"></div>
+      </div>
+    </div>
+
+    <!-- STATS VIEW -->
+    <div id="view-stats" class="view">
+      <div class="card">
+        <h3>📊 סטטיסטיקות</h3>
+        <div class="stats-grid" id="stats-grid"></div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h3>פילוח לפי שלב חינוכי</h3>
+        <div id="level-breakdown"></div>
+      </div>
+      <div class="card" style="margin-top:16px;">
+        <h3>ערים עם הכי הרבה קשרים</h3>
+        <div id="city-breakdown"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CALL MODAL -->
+<div id="modal-overlay" onclick="closeModalIfOverlay(event)">
+  <div id="modal">
+    <h3 id="modal-title">📞 רישום שיחה</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>תאריך השיחה</label>
+        <input type="date" id="call-date">
+      </div>
+      <div class="form-group">
+        <label>סטטוס</label>
+        <select id="call-status">
+          <option value="talked">דיברתי</option>
+          <option value="left-message">השארתי הודעה</option>
+          <option value="no-answer">לא ענו</option>
+          <option value="sent-email">שלחתי מייל</option>
+          <option value="not-interested">לא מעוניינים</option>
+          <option value="booked">הוזמן! 🎉</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>תוכן השיחה / הערות</label>
+      <textarea id="call-notes" placeholder="דיברתי עם... ביקשה לשלוח... אמרה שהתקציב..."></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>שם איש קשר שקיבלתי</label>
+        <input type="text" id="call-contact-name" placeholder="שם המזכירה / רכזת...">
+      </div>
+      <div class="form-group">
+        <label>טלפון / נייד שקיבלתי</label>
+        <input type="text" id="call-contact-phone" placeholder="050-...">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>📅 תזכורת - לחזור בתאריך</label>
+      <input type="date" id="call-followup">
+    </div>
+    <div class="form-group">
+      <label>הסיבה לחזרה</label>
+      <input type="text" id="call-followup-reason" placeholder="לשאול אם קיבלו את המייל / לאחר תחילת שנה...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">ביטול</button>
+      <button class="btn btn-primary" onclick="saveCall()">💾 שמירה</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT CONTACT MODAL -->
+<div id="edit-modal-overlay" onclick="closeEditModalIfOverlay(event)">
+  <div id="modal" style="max-width:600px">
+    <!-- reuse modal style, different content -->
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// =================== DATA MANAGEMENT ===================
+
+let allContacts = [];
+let filteredContacts = [];
+let selectedContact = null;
+let currentView = 'contacts';
+let activeLevel = '';
+let activeStatus = '';
+
+const STORAGE_KEY = 'um_contacts_v2';
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(allContacts));
+  } catch(e) {
+    showToast('שגיאה בשמירה - אחסון מלא?');
+  }
+}
+
+function loadFromStorage() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    allContacts = JSON.parse(saved);
+    return true;
+  }
+  return false;
+}
+
+// =================== INIT ===================
+
+async function init() {
+  const loaded = loadFromStorage();
+  if (!loaded) {
+    // Try to load from contacts_data.json
+    try {
+      const resp = await fetch('contacts_data.json');
+      const raw = await resp.json();
+      allContacts = processRawData(raw);
+      saveToStorage();
+    } catch(e) {
+      allContacts = [];
+      showToast('לא נמצא קובץ נתונים. ייבאי נתונים.');
+    }
+  }
+
+  populateCityFilter();
+  updateBadges();
+  applyFilters();
+  checkReminders();
+  renderStats();
+  detectDuplicates();
+}
+
+function processRawData(raw) {
+  const contacts = [];
+  let id = 1;
+
+  // Process main contacts
+  (raw.contacts || []).forEach(c => {
+    const existing = buildConversationsFromNotes(c);
+    contacts.push({
+      id: 'c' + (id++),
+      source: 'main',
+      city: c.city || '',
+      school: c.school || '',
+      level: normalizeLevel(c.level || ''),
+      address: c.address || '',
+      phone: c.phone || '',
+      contactName: c.contactName || '',
+      mobile: c.mobile || '',
+      email: c.email || '',
+      followUpDate: null,
+      conversations: existing,
+      performedBefore: false,
+      merged: false,
+      mergedFrom: []
+    });
+  });
+
+  // Process leads
+  (raw.leads || []).forEach(c => {
+    contacts.push({
+      id: 'l' + (id++),
+      source: 'leads',
+      city: c.city || '',
+      school: c.school || '',
+      level: normalizeLevel(''),
+      address: '',
+      phone: '',
+      contactName: c.contactName || '',
+      mobile: c.mobile || '',
+      email: '',
+      followUpDate: null,
+      conversations: c.notes ? [{ date: today(), notes: c.notes, followUpDate: null, status: 'talked' }] : [],
+      performedBefore: !!c.performedBefore,
+      merged: false,
+      mergedFrom: []
+    });
+  });
+
+  return contacts;
+}
+
+function buildConversationsFromNotes(c) {
+  const cols = [
+    { date: '2026-05', notes: c.notes9 },
+    { date: '2026-02', notes: c.notes10 },
+    { date: '2026-01', notes: c.notes11 },
+    { date: '2025-12', notes: c.notes12 },
+    { date: '2025-11', notes: c.notes13 },
+    { date: '2025-10', notes: c.notes14 },
+  ];
+  return cols
+    .filter(x => x.notes && x.notes.trim())
+    .map(x => ({ date: x.date, notes: x.notes.trim(), followUpDate: null, status: 'talked' }));
+}
+
+function normalizeLevel(level) {
+  if (!level) return '';
+  if (level.includes('יסודי')) return 'יסודי';
+  if (level.includes('חטיבה') || level.includes('חט"ב')) return 'חטיבה';
+  if (level.includes('תיכון')) return 'תיכון';
+  if (level.includes('שש')) return 'שש שנתי';
+  return level;
+}
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// =================== FILTERS ===================
+
+function applyFilters() {
+  const search = document.getElementById('search-box').value.toLowerCase().trim();
+  const sort = document.getElementById('sort-select').value;
+  const city = document.getElementById('city-filter').value;
+
+  filteredContacts = allContacts.filter(c => {
+    if (activeLevel && !c.level.includes(activeLevel)) return false;
+    if (city && c.city !== city) return false;
+    if (activeStatus === 'overdue') {
+      if (!c.followUpDate) return false;
+      if (c.followUpDate >= today()) return false;
+    } else if (activeStatus === 'today') {
+      if (c.followUpDate !== today()) return false;
+    } else if (activeStatus === 'no-followup') {
+      if (c.followUpDate) return false;
+    } else if (activeStatus === 'has-convo') {
+      if (!c.conversations || c.conversations.length === 0) return false;
+    }
+    if (search) {
+      const haystack = (c.school + ' ' + c.city + ' ' + c.contactName + ' ' + (c.mobile||'') + ' ' + (c.phone||'')).toLowerCase();
+      if (!haystack.includes(search)) return false;
+    }
+    return true;
+  });
+
+  // Sort
+  filteredContacts.sort((a, b) => {
+    if (sort === 'city') return a.city.localeCompare(b.city, 'he');
+    if (sort === 'followup') {
+      if (!a.followUpDate && !b.followUpDate) return 0;
+      if (!a.followUpDate) return 1;
+      if (!b.followUpDate) return -1;
+      return a.followUpDate.localeCompare(b.followUpDate);
+    }
+    if (sort === 'recent') {
+      const aDate = a.conversations.length ? a.conversations[0].date : '';
+      const bDate = b.conversations.length ? b.conversations[0].date : '';
+      return bDate.localeCompare(aDate);
+    }
+    return a.school.localeCompare(b.school, 'he');
+  });
+
+  renderList();
+  updateBadges();
+}
+
+function toggleLevelFilter(el, level) {
+  document.querySelectorAll('#level-filters .filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeLevel = level;
+  applyFilters();
+}
+
+function toggleStatusFilter(el, status) {
+  const chips = document.querySelectorAll('[data-status]');
+  chips.forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  activeStatus = status;
+  applyFilters();
+}
+
+function populateCityFilter() {
+  const cities = [...new Set(allContacts.map(c => c.city).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'he'));
+  const sel = document.getElementById('city-filter');
+  cities.forEach(city => {
+    const opt = document.createElement('option');
+    opt.value = city;
+    opt.textContent = city;
+    sel.appendChild(opt);
+  });
+}
+
+// =================== RENDER LIST ===================
+
+function renderList() {
+  const list = document.getElementById('contact-list');
+  document.getElementById('list-count').textContent = filteredContacts.length + ' קשרים';
+
+  if (filteredContacts.length === 0) {
+    list.innerHTML = '<div id="no-results">לא נמצאו תוצאות</div>';
+    return;
+  }
+
+  const todayStr = today();
+  list.innerHTML = filteredContacts.map((c, i) => {
+    const levelTag = c.level ? `<span class="level-tag tag-${c.level.split(' ')[0]}">${c.level}</span>` : '';
+
+    let indicatorClass = '';
+    let indicatorTitle = '';
+    if (c.followUpDate) {
+      if (c.followUpDate < todayStr) { indicatorClass = 'indicator-overdue'; indicatorTitle = 'באיחור!'; }
+      else if (c.followUpDate === todayStr) { indicatorClass = 'indicator-today'; indicatorTitle = 'היום'; }
+      else { indicatorClass = 'indicator-soon'; indicatorTitle = 'יש תזכורת'; }
+    } else if (c.conversations && c.conversations.length > 0) {
+      indicatorClass = 'indicator-ok';
+    }
+
+    const lastNote = c.conversations && c.conversations.length > 0 ? c.conversations[0].notes.slice(0, 60) : '';
+
+    return `<div class="contact-item ${selectedContact && selectedContact.id === c.id ? 'selected' : ''}" onclick="selectContact('${c.id}')">
+      ${indicatorClass ? `<div class="follow-up-indicator ${indicatorClass}" title="${indicatorTitle}"></div>` : ''}
+      <div class="school-name">${highlight(c.school)}</div>
+      <div class="city-name">${highlight(c.city)} ${levelTag}</div>
+      ${lastNote ? `<div class="last-note">${lastNote}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function highlight(text) {
+  const search = document.getElementById('search-box').value.toLowerCase().trim();
+  if (!search || !text) return text || '';
+  const idx = text.toLowerCase().indexOf(search);
+  if (idx === -1) return text;
+  return text.slice(0, idx) + '<mark>' + text.slice(idx, idx + search.length) + '</mark>' + text.slice(idx + search.length);
+}
+
+// =================== SELECT CONTACT ===================
+
+function selectContact(id) {
+  selectedContact = allContacts.find(c => c.id === id);
+  if (!selectedContact) return;
+
+  document.querySelectorAll('.contact-item').forEach(el => el.classList.remove('selected'));
+  const els = document.querySelectorAll('.contact-item');
+  const idx = filteredContacts.findIndex(c => c.id === id);
+  if (idx >= 0 && els[idx]) els[idx].classList.add('selected');
+
+  showContactDetail();
+}
+
+function showContactDetail() {
+  const c = selectedContact;
+  if (!c) return;
+
+  // Switch to contacts view
+  document.getElementById('empty-state').style.display = 'none';
+
+  const todayStr = today();
+  let followupHtml = '';
+  if (c.followUpDate) {
+    const diffDays = Math.round((new Date(c.followUpDate) - new Date(todayStr)) / 86400000);
+    let cls = 'followup-none', msg = '';
+    if (diffDays < 0) { cls = 'followup-overdue'; msg = `⏰ באיחור של ${Math.abs(diffDays)} ימים! (${formatDate(c.followUpDate)})`; }
+    else if (diffDays === 0) { cls = 'followup-today'; msg = `📅 לחזור היום!`; }
+    else if (diffDays <= 7) { cls = 'followup-soon'; msg = `📅 לחזור בעוד ${diffDays} ימים (${formatDate(c.followUpDate)})`; }
+    else { msg = `📅 תזכורת: ${formatDate(c.followUpDate)}`; }
+
+    followupHtml = `<div class="followup-box ${cls}">
+      <div style="font-size:24px">🔔</div>
+      <div class="followup-text"><strong>${msg}</strong>${c.followUpReason ? c.followUpReason : ''}</div>
+      <button class="btn btn-outline btn-sm" onclick="clearFollowUp()">נוקה</button>
+    </div>`;
+  }
+
+  const convHtml = (c.conversations || []).map((conv, i) => `
+    <div class="conv-entry">
+      <button class="delete-conv" onclick="deleteConv(${i})" title="מחיקה">✕</button>
+      <div class="conv-date">${formatDate(conv.date)} ${conv.status ? ' · ' + statusLabel(conv.status) : ''}</div>
+      <div class="conv-notes">${escHtml(conv.notes)}</div>
+      ${conv.followUpDate ? `<div class="conv-followup">תזכורת: <span>${formatDate(conv.followUpDate)}</span></div>` : ''}
+    </div>
+  `).join('');
+
+  const levelClass = c.level ? 'tag-' + c.level.split(' ')[0] : 'tag-other';
+
+  document.getElementById('view-contact-detail').innerHTML = `
+    <div class="detail-header">
+      <div class="school-icon">🏫</div>
+      <div>
+        <h2>${escHtml(c.school)}</h2>
+        <div class="meta">
+          ${c.city ? escHtml(c.city) : ''}
+          ${c.level ? `<span class="level-tag ${levelClass}" style="margin-right:8px">${escHtml(c.level)}</span>` : ''}
+          ${c.performedBefore ? '<span class="level-tag" style="background:#d4edda;color:#155724;margin-right:6px">✓ הופענו בעבר</span>' : ''}
+          ${c.source === 'leads' ? '<span class="level-tag" style="background:#d1ecf1;color:#0c5460">ליד</span>' : ''}
+        </div>
+      </div>
+    </div>
+
+    ${followupHtml}
+
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="openAddCallModal()">📞 רישום שיחה</button>
+      <button class="btn btn-outline" onclick="setFollowUp()">🔔 קביעת תזכורת</button>
+      <button class="btn btn-outline" onclick="editContact()">✏️ עריכת פרטים</button>
+      ${c.performedBefore ? '' : '<button class="btn btn-success btn-sm" onclick="markPerformed()">✓ סמני הופענו</button>'}
+    </div>
+
+    <div class="card">
+      <h3>פרטי קשר</h3>
+      <div class="info-grid">
+        <div class="info-item"><label>שם בית הספר</label><div class="value">${escHtml(c.school)}</div></div>
+        <div class="info-item"><label>עיר</label><div class="value">${escHtml(c.city)}</div></div>
+        <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
+        <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(c.level || '—')}</div></div>
+        <div class="info-item"><label>טלפון בית ספר</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
+        <div class="info-item"><label>איש קשר</label><div class="value">${escHtml(c.contactName || '—')}</div></div>
+        <div class="info-item"><label>נייד</label><div class="value"><a href="tel:${c.mobile}">${escHtml(c.mobile || '—')}</a></div></div>
+        <div class="info-item"><label>מייל</label><div class="value"><a href="mailto:${c.email}">${escHtml(c.email || '—')}</a></div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>היסטוריית שיחות (${(c.conversations||[]).length})</h3>
+      ${convHtml || '<p style="color:var(--muted);font-size:13px">אין שיחות מתועדות עדיין</p>'}
+    </div>
+  `;
+
+  // Show the view
+  document.getElementById('empty-state').style.display = 'none';
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-contact-detail').classList.add('active');
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  try {
+    const parts = d.split('-');
+    if (parts.length === 2) return parts[1] + '/' + parts[0]; // YYYY-MM
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  } catch(e) { return d; }
+}
+
+function statusLabel(s) {
+  const map = { 'talked': 'שיחה', 'left-message': 'הודעה', 'no-answer': 'לא ענו', 'sent-email': 'מייל', 'not-interested': 'לא מעוניינים', 'booked': '🎉 הוזמן!' };
+  return map[s] || s;
+}
+
+// =================== MODAL - ADD CALL ===================
+
+function openAddCallModal() {
+  document.getElementById('call-date').value = today();
+  document.getElementById('call-notes').value = '';
+  document.getElementById('call-status').value = 'talked';
+  document.getElementById('call-contact-name').value = selectedContact.contactName || '';
+  document.getElementById('call-contact-phone').value = selectedContact.mobile || '';
+  document.getElementById('call-followup').value = '';
+  document.getElementById('call-followup-reason').value = '';
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('call-notes').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function closeModalIfOverlay(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function saveCall() {
+  const notes = document.getElementById('call-notes').value.trim();
+  const date = document.getElementById('call-date').value;
+  const status = document.getElementById('call-status').value;
+  const contactName = document.getElementById('call-contact-name').value.trim();
+  const contactPhone = document.getElementById('call-contact-phone').value.trim();
+  const followup = document.getElementById('call-followup').value;
+  const followupReason = document.getElementById('call-followup-reason').value.trim();
+
+  if (!notes && !contactName) { showToast('נא להזין הערות או שם איש קשר'); return; }
+
+  // Update contact name/phone if provided
+  if (contactName) selectedContact.contactName = contactName;
+  if (contactPhone) selectedContact.mobile = contactPhone;
+
+  // Add conversation
+  const conv = { date, notes, status, followUpDate: followup || null };
+  if (!selectedContact.conversations) selectedContact.conversations = [];
+  selectedContact.conversations.unshift(conv);
+
+  // Set follow-up
+  if (followup) {
+    selectedContact.followUpDate = followup;
+    selectedContact.followUpReason = followupReason;
+  }
+
+  saveToStorage();
+  closeModal();
+  showContactDetail();
+  renderList();
+  updateBadges();
+  showToast('השיחה נשמרה בהצלחה ✓');
+}
+
+// =================== FOLLOW UP ===================
+
+function setFollowUp() {
+  const date = prompt('תאריך תזכורת (YYYY-MM-DD):', selectedContact.followUpDate || today());
+  if (!date) return;
+  const reason = prompt('סיבת החזרה (אופציונלי):', selectedContact.followUpReason || '');
+  selectedContact.followUpDate = date;
+  selectedContact.followUpReason = reason;
+  saveToStorage();
+  showContactDetail();
+  showToast('תזכורת נקבעה ✓');
+}
+
+function clearFollowUp() {
+  selectedContact.followUpDate = null;
+  selectedContact.followUpReason = null;
+  saveToStorage();
+  showContactDetail();
+  updateBadges();
+  showToast('תזכורת בוטלה');
+}
+
+function deleteConv(idx) {
+  if (!confirm('למחוק שיחה זו?')) return;
+  selectedContact.conversations.splice(idx, 1);
+  saveToStorage();
+  showContactDetail();
+}
+
+function markPerformed() {
+  selectedContact.performedBefore = true;
+  saveToStorage();
+  showContactDetail();
+  showToast('סומן כ"הופענו בעבר" ✓');
+}
+
+// =================== EDIT CONTACT ===================
+
+function editContact() {
+  const c = selectedContact;
+  const html = `
+    <h3>✏️ עריכת פרטים</h3>
+    <div class="form-row">
+      <div class="form-group"><label>שם בית הספר</label><input id="e-school" value="${escHtml(c.school)}"></div>
+      <div class="form-group"><label>עיר</label><input id="e-city" value="${escHtml(c.city)}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>שלב בחינוך</label>
+        <select id="e-level">
+          <option value="" ${!c.level ? 'selected' : ''}>---</option>
+          <option value="יסודי" ${c.level==='יסודי'?'selected':''}>יסודי</option>
+          <option value="חטיבה" ${c.level==='חטיבה'?'selected':''}>חטיבה</option>
+          <option value="תיכון" ${c.level==='תיכון'?'selected':''}>תיכון</option>
+          <option value="שש שנתי" ${c.level==='שש שנתי'?'selected':''}>שש שנתי</option>
+        </select>
+      </div>
+      <div class="form-group"><label>כתובת</label><input id="e-address" value="${escHtml(c.address)}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>טלפון ביה"ס</label><input id="e-phone" value="${escHtml(c.phone)}"></div>
+      <div class="form-group"><label>נייד איש קשר</label><input id="e-mobile" value="${escHtml(c.mobile)}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>שם איש קשר</label><input id="e-contact" value="${escHtml(c.contactName)}"></div>
+      <div class="form-group"><label>מייל</label><input id="e-email" value="${escHtml(c.email)}"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeEditModal()">ביטול</button>
+      <button class="btn btn-primary" onclick="saveEdit()">💾 שמירה</button>
+    </div>
+  `;
+  const overlay = document.getElementById('edit-modal-overlay');
+  overlay.querySelector('#modal').innerHTML = html;
+  overlay.style.display = 'flex';
+  overlay.style.position = 'fixed';
+  overlay.style.inset = '0';
+  overlay.style.background = 'rgba(0,0,0,.4)';
+  overlay.style.zIndex = '1000';
+  overlay.style.alignItems = 'center';
+  overlay.style.justifyContent = 'center';
+}
+
+function closeEditModal() {
+  document.getElementById('edit-modal-overlay').style.display = 'none';
+}
+
+function closeEditModalIfOverlay(e) {
+  if (e.target === document.getElementById('edit-modal-overlay')) closeEditModal();
+}
+
+function saveEdit() {
+  const c = selectedContact;
+  const oldCity = c.city;
+  c.school = document.getElementById('e-school').value.trim();
+  c.city = document.getElementById('e-city').value.trim();
+  c.level = document.getElementById('e-level').value;
+  c.address = document.getElementById('e-address').value.trim();
+  c.phone = document.getElementById('e-phone').value.trim();
+  c.mobile = document.getElementById('e-mobile').value.trim();
+  c.contactName = document.getElementById('e-contact').value.trim();
+  c.email = document.getElementById('e-email').value.trim();
+  saveToStorage();
+  closeEditModal();
+  if (oldCity !== c.city) populateCityFilter();
+  applyFilters();
+  showContactDetail();
+  showToast('הפרטים עודכנו ✓');
+}
+
+// =================== VIEWS ===================
+
+function setView(view, btn) {
+  currentView = view;
+  document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+
+  document.getElementById('empty-state').style.display = 'none';
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+  if (view === 'reminders') {
+    renderReminders();
+    document.getElementById('view-reminders').classList.add('active');
+  } else if (view === 'duplicates') {
+    renderDuplicates();
+    document.getElementById('view-duplicates').classList.add('active');
+  } else if (view === 'stats') {
+    renderStats();
+    document.getElementById('view-stats').classList.add('active');
+  } else {
+    // contacts
+    if (selectedContact) {
+      document.getElementById('view-contact-detail').classList.add('active');
+    } else {
+      document.getElementById('empty-state').style.display = 'flex';
+    }
+  }
+}
+
+// =================== REMINDERS ===================
+
+function getReminders() {
+  const todayStr = today();
+  return allContacts
+    .filter(c => c.followUpDate)
+    .map(c => ({ ...c, daysLeft: Math.round((new Date(c.followUpDate) - new Date(todayStr)) / 86400000) }))
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+}
+
+function renderReminders() {
+  const reminders = getReminders();
+  const html = reminders.length === 0 ? '<p style="color:var(--muted)">אין תזכורות פעילות 🎉</p>' :
+    reminders.map(c => {
+      let badge = '', cls = '';
+      if (c.daysLeft < 0) { badge = `באיחור של ${Math.abs(c.daysLeft)} ימים`; cls = 'color:var(--red)'; }
+      else if (c.daysLeft === 0) { badge = 'היום!'; cls = 'color:var(--orange)'; }
+      else { badge = `בעוד ${c.daysLeft} ימים`; }
+      return `<div class="conv-entry" style="cursor:pointer" onclick="selectContact('${c.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${escHtml(c.school)}</strong>
+          <span style="${cls};font-size:12px;font-weight:600">${badge}</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">${escHtml(c.city)} · ${formatDate(c.followUpDate)}</div>
+        ${c.followUpReason ? `<div style="font-size:12px;margin-top:4px">${escHtml(c.followUpReason)}</div>` : ''}
+      </div>`;
+    }).join('');
+  document.getElementById('reminders-list').innerHTML = html;
+}
+
+function checkReminders() {
+  const overdue = getReminders().filter(c => c.daysLeft <= 0);
+  if (overdue.length > 0) {
+    document.getElementById('reminder-banner').style.display = 'block';
+    document.getElementById('reminder-count').textContent = overdue.length;
+  }
+}
+
+function dismissReminder() {
+  document.getElementById('reminder-banner').style.display = 'none';
+  setView('reminders', null);
+}
+
+// =================== DUPLICATES ===================
+
+let duplicatePairs = [];
+
+function detectDuplicates() {
+  duplicatePairs = [];
+  const seen = new Map();
+
+  allContacts.forEach(c => {
+    // Match on school name + city together to avoid false positives
+    const key = normalizeSchoolName(c.school) + '|' + (c.city || '').trim();
+    if (!seen.has(key)) seen.set(key, []);
+    seen.get(key).push(c);
+  });
+
+  seen.forEach((group) => {
+    if (group.length > 1) {
+      for (let i = 0; i < group.length - 1; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          duplicatePairs.push([group[i], group[j]]);
+        }
+      }
+    }
+  });
+
+  document.getElementById('badge-dups').textContent = duplicatePairs.length;
+}
+
+function normalizeSchoolName(name) {
+  return (name || '').replace(/["״']/g, '').replace(/בית ספר|בי"ס|ביה"ס/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function renderDuplicates() {
+  if (duplicatePairs.length === 0) {
+    document.getElementById('duplicates-list').innerHTML = '<p style="color:var(--green)">✓ לא נמצאו כפולים</p>';
+    return;
+  }
+
+  const html = duplicatePairs.slice(0, 50).map(([a, b], idx) => `
+    <div class="dup-pair">
+      <h4>זוג כפול #${idx + 1}</h4>
+      <div class="dup-schools">
+        <div class="dup-school">
+          <strong>${escHtml(a.school)}</strong>
+          ${escHtml(a.city)} · ${escHtml(a.level)}<br>
+          <small>${escHtml(a.contactName)} ${escHtml(a.mobile)}</small><br>
+          <small>${(a.conversations||[]).length} שיחות מתועדות</small>
+        </div>
+        <div style="display:flex;align-items:center;padding:0 8px;color:var(--muted)">⇔</div>
+        <div class="dup-school">
+          <strong>${escHtml(b.school)}</strong>
+          ${escHtml(b.city)} · ${escHtml(b.level)}<br>
+          <small>${escHtml(b.contactName)} ${escHtml(b.mobile)}</small><br>
+          <small>${(b.conversations||[]).length} שיחות מתועדות</small>
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="selectContact('${a.id}')">פתחי #1</button>
+        <button class="btn btn-outline btn-sm" onclick="selectContact('${b.id}')">פתחי #2</button>
+        <button class="btn btn-danger btn-sm" onclick="mergeContacts('${a.id}', '${b.id}', ${idx})">מזגי ל-#1</button>
+      </div>
+    </div>
+  `).join('');
+  document.getElementById('duplicates-list').innerHTML = html;
+}
+
+function mergeContacts(idA, idB, pairIdx) {
+  const a = allContacts.find(c => c.id === idA);
+  const b = allContacts.find(c => c.id === idB);
+  if (!a || !b) return;
+
+  // Merge b into a - prefer non-empty values from b
+  if (!a.contactName && b.contactName) a.contactName = b.contactName;
+  if (!a.mobile && b.mobile) a.mobile = b.mobile;
+  if (!a.email && b.email) a.email = b.email;
+  if (!a.phone && b.phone) a.phone = b.phone;
+  if (!a.address && b.address) a.address = b.address;
+  if (!a.followUpDate && b.followUpDate) a.followUpDate = b.followUpDate;
+
+  // Merge conversations
+  a.conversations = [...(a.conversations || []), ...(b.conversations || [])];
+  a.conversations.sort((x, y) => y.date.localeCompare(x.date));
+
+  // Mark b as merged
+  b.merged = true;
+  allContacts = allContacts.filter(c => c.id !== idB);
+
+  duplicatePairs.splice(pairIdx, 1);
+  saveToStorage();
+  applyFilters();
+  renderDuplicates();
+  updateBadges();
+  showToast('הקשרים מוזגו בהצלחה ✓');
+}
+
+// =================== STATS ===================
+
+function renderStats() {
+  const total = allContacts.length;
+  const withConvo = allContacts.filter(c => c.conversations && c.conversations.length > 0).length;
+  const withReminder = allContacts.filter(c => c.followUpDate).length;
+  const performed = allContacts.filter(c => c.performedBefore).length;
+  const overdue = allContacts.filter(c => c.followUpDate && c.followUpDate < today()).length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">סה"כ קשרים</div></div>
+    <div class="stat-card"><div class="stat-num">${withConvo}</div><div class="stat-label">עם שיחות מתועדות</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--orange)">${withReminder}</div><div class="stat-label">עם תזכורת פעילה</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)">${overdue}</div><div class="stat-label">תזכורות באיחור</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green)">${performed}</div><div class="stat-label">הופענו בעבר</div></div>
+    <div class="stat-card"><div class="stat-num">${duplicatePairs.length}</div><div class="stat-label">זוגות כפולים</div></div>
+  `;
+
+  // Level breakdown
+  const levels = {};
+  allContacts.forEach(c => { const l = c.level || 'לא מוגדר'; levels[l] = (levels[l] || 0) + 1; });
+  document.getElementById('level-breakdown').innerHTML = Object.entries(levels)
+    .sort((a, b) => b[1] - a[1])
+    .map(([l, n]) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:100px;font-size:13px">${l}</div>
+      <div style="flex:1;background:#e9ecef;border-radius:4px;height:20px;overflow:hidden">
+        <div style="background:var(--primary);height:100%;width:${Math.round(n/total*100)}%"></div>
+      </div>
+      <div style="font-size:13px;width:40px;text-align:left">${n}</div>
+    </div>`).join('');
+
+  // City breakdown - top 15
+  const cities = {};
+  allContacts.forEach(c => { if (c.city) cities[c.city] = (cities[c.city] || 0) + 1; });
+  const maxCity = Math.max(...Object.values(cities));
+  document.getElementById('city-breakdown').innerHTML = Object.entries(cities)
+    .sort((a, b) => b[1] - a[1]).slice(0, 15)
+    .map(([city, n]) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="width:120px;font-size:13px">${city}</div>
+      <div style="flex:1;background:#e9ecef;border-radius:4px;height:16px;overflow:hidden">
+        <div style="background:var(--accent);height:100%;width:${Math.round(n/maxCity*100)}%"></div>
+      </div>
+      <div style="font-size:13px;width:30px;text-align:left">${n}</div>
+    </div>`).join('');
+}
+
+// =================== BADGES ===================
+
+function updateBadges() {
+  document.getElementById('badge-all').textContent = filteredContacts.length;
+  const overdue = allContacts.filter(c => c.followUpDate && c.followUpDate <= today()).length;
+  document.getElementById('badge-reminders').textContent = overdue;
+  document.getElementById('badge-dups').textContent = duplicatePairs.length;
+}
+
+// =================== EXPORT ===================
+
+function exportData() {
+  const json = JSON.stringify(allContacts, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'um-contacts-export-' + today() + '.json';
+  a.click();
+  showToast('הנתונים יוצאו בהצלחה ✓');
+}
+
+function showImportGuide() {
+  alert('לייבוא נתונים:\n1. הנחי את קובץ contacts_data.json בתיקיית האפליקציה\n2. רענני את הדף\n\nאו גרור קובץ JSON לחלון זה');
+}
+
+// =================== DRAG & DROP IMPORT ===================
+
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.name.endsWith('.json')) return showToast('נא לגרור קובץ JSON בלבד');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (Array.isArray(data)) {
+        allContacts = data;
+      } else if (data.contacts) {
+        allContacts = processRawData(data);
+      }
+      saveToStorage();
+      populateCityFilter();
+      applyFilters();
+      detectDuplicates();
+      updateBadges();
+      renderStats();
+      showToast('הנתונים יובאו בהצלחה ✓');
+    } catch(e) {
+      showToast('שגיאה בקריאת הקובץ');
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+});
+
+// =================== TOAST ===================
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3000);
+}
+
+// =================== KEYBOARD ===================
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeModal(); closeEditModal(); }
+  if (e.key === 'n' && !e.ctrlKey && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+    if (selectedContact) openAddCallModal();
+  }
+});
+
+// =================== START ===================
+
+init();
+</script>
+</body>
+</html>
