@@ -1119,10 +1119,10 @@ function showContactDetail() {
 
   const sortedConvos = [...(c.conversations || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const convHtml = sortedConvos.map((conv, i) => `
-    <div class="conv-entry" id="conv-entry-${i}">
+    <div class="conv-entry" id="conv-entry-${i}" data-conv-idx="${i}">
       <div style="display:flex;gap:4px;position:absolute;top:8px;left:8px">
-        <button class="delete-conv" style="position:static" onclick="editConv(${i})" title="עריכה">✏️</button>
-        <button class="delete-conv" style="position:static" onclick="deleteConv('${conv.date}','${conv.notes.slice(0,20).replace(/'/g,'').replace(/`/g,'')}'')" title="מחיקה">✕</button>
+        <button class="delete-conv" style="position:static" data-action="edit" data-idx="${i}" title="עריכה">✏️</button>
+        <button class="delete-conv" style="position:static" data-action="delete" data-idx="${i}" title="מחיקה">✕</button>
       </div>
       <div class="conv-date">${formatDate(conv.date)} ${conv.status ? ' · ' + statusLabel(conv.status) : ''}</div>
       <div class="conv-notes">${escHtml(conv.notes)}</div>
@@ -1282,6 +1282,27 @@ function clearFollowUp() {
   showToast('תזכורת בוטלה');
 }
 
+// Delegate conv actions via event listener (avoids quote issues in onclick)
+document.addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const idx = parseInt(btn.dataset.idx);
+  if (btn.dataset.action === 'edit') editConv(idx);
+  if (btn.dataset.action === 'delete') deleteConvByIdx(idx);
+});
+
+function deleteConvByIdx(sortedIdx) {
+  if (!confirm('למחוק שיחה זו?')) return;
+  const sortedConvos = [...(selectedContact.conversations || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const conv = sortedConvos[sortedIdx];
+  if (!conv) return;
+  const realIdx = selectedContact.conversations.indexOf(conv);
+  if (realIdx !== -1) selectedContact.conversations.splice(realIdx, 1);
+  saveToStorage();
+  showContactDetail();
+  showToast('השיחה נמחקה ✓');
+}
+
 function editConv(sortedIdx) {
   const sortedConvos = [...(selectedContact.conversations || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const conv = sortedConvos[sortedIdx];
@@ -1322,13 +1343,6 @@ function editConv(sortedIdx) {
   };
 }
 
-function deleteConv(date, notePrefix) {
-  if (!confirm('למחוק שיחה זו?')) return;
-  const idx = selectedContact.conversations.findIndex(c => c.date === date && c.notes.slice(0,20).replace(/'/g,'') === notePrefix);
-  if (idx !== -1) selectedContact.conversations.splice(idx, 1);
-  saveToStorage();
-  showContactDetail();
-}
 
 function deleteCurrentContact() {
   if (!selectedContact) return;
