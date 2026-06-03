@@ -529,9 +529,9 @@
     }
 
     /* SECONDARY VIEWS — fixed overlay over #main */
-    #view-reminders, #view-duplicates, #view-stats {
+    #view-reminders, #view-duplicates, #view-stats, #view-campaigns {
       position: fixed;
-      top: 56px; bottom: 68px; left: 0; right: 0;
+      top: 106px; bottom: 68px; left: 0; right: 0;
       background: var(--bg);
       padding: 16px;
       overflow-y: auto;
@@ -539,7 +539,7 @@
       z-index: 40;
       display: none;
     }
-    #view-reminders.active, #view-duplicates.active, #view-stats.active {
+    #view-reminders.active, #view-duplicates.active, #view-stats.active, #view-campaigns.active {
       display: block;
     }
 
@@ -2040,10 +2040,6 @@ let campaignSelectedIds = new Set();
 let editingCampaignIdx = null;
 
 function saveCampaigns() { localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns)); }
-
-function setView(view, btn) {
-  // override defined later — see below
-}
 
 function openNewCampaign() {
   editingCampaignIdx = null;
