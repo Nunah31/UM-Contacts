@@ -1642,14 +1642,18 @@ function getReminders() {
     }
     // Conversation-level follow-ups
     (c.conversations || []).forEach(conv => {
-      if (conv.followUpDate && conv.followUpDate !== c.followUpDate) {
-        items.push({
-          ...c,
-          reminderDate: conv.followUpDate,
-          reminderTime: conv.followUpTime || null,
-          reminderReason: conv.notes ? conv.notes.slice(0, 60) : '',
-          daysLeft: Math.round((new Date(conv.followUpDate) - new Date(todayStr)) / 86400000)
-        });
+      if (conv.followUpDate) {
+        // avoid exact duplicate with contact-level reminder
+        const alreadyAdded = items.some(i => i.id === c.id && i.reminderDate === conv.followUpDate);
+        if (!alreadyAdded) {
+          items.push({
+            ...c,
+            reminderDate: conv.followUpDate,
+            reminderTime: conv.followUpTime || null,
+            reminderReason: conv.notes ? conv.notes.slice(0, 80) : '',
+            daysLeft: Math.round((new Date(conv.followUpDate) - new Date(todayStr)) / 86400000)
+          });
+        }
       }
     });
   });
