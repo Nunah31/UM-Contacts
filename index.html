@@ -1627,27 +1627,52 @@ function setView(view, btn) {
 
 function getReminders() {
   const todayStr = today();
-  return allContacts
-    .filter(c => c.followUpDate)
-    .map(c => ({ ...c, daysLeft: Math.round((new Date(c.followUpDate) - new Date(todayStr)) / 86400000) }))
-    .sort((a, b) => a.daysLeft - b.daysLeft);
+  const items = [];
+
+  allContacts.forEach(c => {
+    // Contact-level follow-up
+    if (c.followUpDate) {
+      items.push({
+        ...c,
+        reminderDate: c.followUpDate,
+        reminderTime: c.followUpTime || null,
+        reminderReason: c.followUpReason || '',
+        daysLeft: Math.round((new Date(c.followUpDate) - new Date(todayStr)) / 86400000)
+      });
+    }
+    // Conversation-level follow-ups
+    (c.conversations || []).forEach(conv => {
+      if (conv.followUpDate && conv.followUpDate !== c.followUpDate) {
+        items.push({
+          ...c,
+          reminderDate: conv.followUpDate,
+          reminderTime: conv.followUpTime || null,
+          reminderReason: conv.notes ? conv.notes.slice(0, 60) : '',
+          daysLeft: Math.round((new Date(conv.followUpDate) - new Date(todayStr)) / 86400000)
+        });
+      }
+    });
+  });
+
+  return items.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
 function renderReminders() {
   const reminders = getReminders();
   const html = reminders.length === 0 ? '<p style="color:var(--muted)">אין תזכורות פעילות 🎉</p>' :
-    reminders.map(c => {
+    reminders.map(r => {
       let badge = '', cls = '';
-      if (c.daysLeft < 0) { badge = `באיחור של ${Math.abs(c.daysLeft)} ימים`; cls = 'color:var(--red)'; }
-      else if (c.daysLeft === 0) { badge = 'היום!'; cls = 'color:var(--orange)'; }
-      else { badge = `בעוד ${c.daysLeft} ימים`; }
-      return `<div class="conv-entry" style="cursor:pointer" onclick="selectContact('${c.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <strong>${escHtml(c.school)}</strong>
-          <span style="${cls};font-size:12px;font-weight:600">${badge}</span>
+      if (r.daysLeft < 0) { badge = `באיחור של ${Math.abs(r.daysLeft)} ימים`; cls = 'color:var(--red)'; }
+      else if (r.daysLeft === 0) { badge = 'היום!'; cls = 'color:var(--orange)'; }
+      else { badge = `בעוד ${r.daysLeft} ימים`; }
+      const timeStr = r.reminderTime ? ' · ⏰ ' + r.reminderTime : '';
+      return `<div class="conv-entry" style="cursor:pointer" onclick="selectContact('${r.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <strong style="font-size:15px">${escHtml(r.school)}</strong>
+          <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
         </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">${escHtml(c.city)} · ${formatDate(c.followUpDate)}</div>
-        ${c.followUpReason ? `<div style="font-size:12px;margin-top:4px">${escHtml(c.followUpReason)}</div>` : ''}
+        <div style="font-size:13px;color:var(--muted);margin-top:4px">${escHtml(r.city)} · 📅 ${formatDate(r.reminderDate)}${timeStr}</div>
+        ${r.reminderReason ? `<div style="font-size:13px;margin-top:4px">${escHtml(r.reminderReason)}</div>` : ''}
       </div>`;
     }).join('');
   document.getElementById('reminders-list').innerHTML = html;
