@@ -393,6 +393,18 @@
   .view { display: none; }
   .view.active { display: block; }
 
+  /* Secondary views — positioned in the detail panel area on desktop */
+  .secondary-view.active {
+    position: fixed;
+    top: 0; bottom: 0;
+    right: 580px;
+    left: 0;
+    background: var(--bg);
+    overflow-y: auto;
+    padding: 20px;
+    z-index: 5;
+  }
+
   /* Toast */
   #toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -528,20 +540,18 @@
       transform: translateX(0);
     }
 
-    /* SECONDARY VIEWS — fixed overlay over #main */
-    #view-reminders, #view-duplicates, #view-stats, #view-campaigns, #view-lists {
-      position: fixed;
-      top: 106px; bottom: 68px; left: 0; right: 0;
+    /* SECONDARY VIEWS on mobile — full screen fixed overlays */
+    .secondary-view {
+      position: fixed !important;
+      top: 106px !important; bottom: 68px !important;
+      left: 0 !important; right: 0 !important;
       background: var(--bg);
       padding: 16px;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       z-index: 40;
-      display: none;
     }
-    #view-reminders.active, #view-duplicates.active, #view-stats.active, #view-campaigns.active, #view-lists.active {
-      display: block;
-    }
+    .secondary-view.active { display: block !important; }
 
     /* FONTS & ELEMENTS */
     .contact-item { padding: 14px 16px; }
@@ -723,65 +733,53 @@
       <!-- filled dynamically -->
     </div>
 
-    <!-- REMINDERS VIEW -->
-    <div id="view-reminders" class="view">
-      <div class="card">
-        <h3>🔔 תזכורות - לחזור אל</h3>
-        <div id="reminders-list"></div>
-      </div>
-    </div>
-
-    <!-- DUPLICATES VIEW -->
-    <div id="view-duplicates" class="view">
-      <div class="dup-sticky-bar">
-        <span style="font-size:16px;font-weight:700">⚠️ כפולים (<span id="dup-count-label">0</span>)</span>
-        <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;margin-right:auto;">
-          <input type="checkbox" id="select-all-dups" onchange="toggleSelectAllDups(this)"> סמני הכל
-        </label>
-        <button class="btn btn-primary btn-sm" onclick="mergeSelected()">🔀 מזגי נבחרים</button>
-        <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑️ מחקי נבחרים (#2)</button>
-      </div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;margin-top:4px;">לכל זוג: סמני ✓ לבחירה. "מזגי" — מאחד את השניים ל-#1. "מחקי #2" — מוחק את הכרטיס הימני.</p>
-      <div id="duplicates-list"></div>
-    </div>
-
-    <!-- STATS VIEW -->
-    <div id="view-stats" class="view">
-      <div class="card">
-        <h3>📊 סטטיסטיקות</h3>
-        <div class="stats-grid" id="stats-grid"></div>
-      </div>
-      <div class="card" style="margin-top:16px;">
-        <h3>פילוח לפי שלב חינוכי</h3>
-        <div id="level-breakdown"></div>
-      </div>
-      <div class="card" style="margin-top:16px;">
-        <h3>ערים עם הכי הרבה קשרים</h3>
-        <div id="city-breakdown"></div>
-      </div>
-    </div>
-
-    <!-- CAMPAIGNS VIEW -->
-    <div id="view-campaigns" class="view detail-scroll">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-        <h2 style="font-size:20px">📢 הפצות</h2>
-        <button class="btn btn-primary" onclick="openNewCampaign()">+ הפצה חדשה</button>
-        <button class="btn btn-outline" onclick="setView('lists', null)" style="margin-right:auto">📋 רשימות תפוצה</button>
-      </div>
-      <div id="campaigns-list"></div>
-    </div>
-
-    <!-- MAILING LISTS VIEW -->
-    <div id="view-lists" class="view detail-scroll">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-        <button class="btn btn-outline btn-sm" onclick="setView('campaigns',null)">← חזרה להפצות</button>
-        <h2 style="font-size:20px">📋 רשימות תפוצה</h2>
-        <button class="btn btn-primary" onclick="openNewList()">+ רשימה חדשה</button>
-      </div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">רשימות שמורות של אנשי קשר — ניתן לעדכן ולהשתמש בכל הפצה</p>
-      <div id="lists-container"></div>
-    </div>
   </div>
+</div>
+
+<!-- SECONDARY VIEWS — outside #main so mobile fixed positioning works -->
+<div id="view-reminders" class="view secondary-view">
+  <div class="card">
+    <h3>🔔 תזכורות - לחזור אל</h3>
+    <div id="reminders-list"></div>
+  </div>
+</div>
+
+<div id="view-duplicates" class="view secondary-view">
+  <div class="dup-sticky-bar">
+    <span style="font-size:16px;font-weight:700">⚠️ כפולים (<span id="dup-count-label">0</span>)</span>
+    <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;margin-right:auto;">
+      <input type="checkbox" id="select-all-dups" onchange="toggleSelectAllDups(this)"> סמני הכל
+    </label>
+    <button class="btn btn-primary btn-sm" onclick="mergeSelected()">🔀 מזגי נבחרים</button>
+    <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑️ מחקי נבחרים (#2)</button>
+  </div>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:14px;margin-top:4px;">לכל זוג: סמני ✓ לבחירה. "מזגי" — מאחד את השניים ל-#1. "מחקי #2" — מוחק את הכרטיס הימני.</p>
+  <div id="duplicates-list"></div>
+</div>
+
+<div id="view-stats" class="view secondary-view">
+  <div class="card"><h3>📊 סטטיסטיקות</h3><div class="stats-grid" id="stats-grid"></div></div>
+  <div class="card" style="margin-top:16px;"><h3>פילוח לפי שלב חינוכי</h3><div id="level-breakdown"></div></div>
+  <div class="card" style="margin-top:16px;"><h3>ערים עם הכי הרבה קשרים</h3><div id="city-breakdown"></div></div>
+</div>
+
+<div id="view-campaigns" class="view secondary-view">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <h2 style="font-size:20px">📢 הפצות</h2>
+    <button class="btn btn-primary" onclick="openNewCampaign()">+ הפצה חדשה</button>
+    <button class="btn btn-outline" onclick="setView('lists',null)" style="margin-right:auto">📋 רשימות תפוצה</button>
+  </div>
+  <div id="campaigns-list"></div>
+</div>
+
+<div id="view-lists" class="view secondary-view">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <button class="btn btn-outline btn-sm" onclick="setView('campaigns',null)">← חזרה להפצות</button>
+    <h2 style="font-size:20px">📋 רשימות תפוצה</h2>
+    <button class="btn btn-primary" onclick="openNewList()">+ רשימה חדשה</button>
+  </div>
+  <p style="font-size:13px;color:var(--muted);margin-bottom:16px">רשימות שמורות של אנשי קשר — ניתן לעדכן ולהשתמש בכל הפצה</p>
+  <div id="lists-container"></div>
 </div>
 
 <!-- ADD CALL MODAL -->
@@ -909,6 +907,12 @@
 
     <div style="background:#f4f6f9;border-radius:10px;padding:16px;margin:16px 0">
       <div style="font-weight:600;margin-bottom:10px;font-size:15px">👥 בחירת נמענים</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+        <label style="font-size:13px;font-weight:600;color:var(--muted)">טעני מרשימת תפוצה:</label>
+        <select id="cp-load-list" onchange="loadFromMailingList(this)" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:7px;font-size:14px">
+          <option value="">— בחרי רשימה —</option>
+        </select>
+      </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('email')">📧 יש מייל</button>
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('mobile')">📱 יש נייד</button>
@@ -2159,6 +2163,24 @@ function setCpLevel(btn, level) {
   renderCampaignRecipients();
 }
 
+function loadFromMailingList(sel) {
+  const id = sel.value;
+  if (!id) return;
+  const ml = mailingLists.find(l => l.id === id);
+  if (!ml) return;
+  (ml.contacts || []).forEach(cid => campaignSelectedIds.add(cid));
+  renderCampaignRecipients();
+  showToast('נטענו ' + ml.contacts.length + ' אנשי קשר מ"' + ml.name + '"');
+  sel.value = '';
+}
+
+function populateListsDropdown() {
+  const sel = document.getElementById('cp-load-list');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— בחרי רשימה —</option>' +
+    mailingLists.map(ml => `<option value="${ml.id}">${escHtml(ml.name)} (${(ml.contacts||[]).length})</option>`).join('');
+}
+
 function openNewCampaign() {
   editingCampaignIdx = null;
   cpLevelFilter = '';
@@ -2171,6 +2193,7 @@ function openNewCampaign() {
   cpLevelFilter = '';
   document.querySelectorAll('.cp-level-btn').forEach((b,i) => b.classList.toggle('active', i===0));
   renderCampaignRecipients();
+  populateListsDropdown();
   document.getElementById('campaign-modal-overlay').style.display = 'flex';
 }
 
