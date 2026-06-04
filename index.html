@@ -698,7 +698,8 @@
 
   <div class="sidebar-section" style="margin-top:auto; padding-top:20px;">
     <button class="sidebar-btn" onclick="reloadFromJSON()">🔄 טעינה מחדש מהאקסל</button>
-    <button class="sidebar-btn" onclick="exportData()">📤 ייצוא JSON</button>
+    <button class="sidebar-btn" onclick="exportData()">📤 ייצוא גיבוי</button>
+    <button class="sidebar-btn" onclick="importBackup()">📥 שחזור מגיבוי</button>
   </div>
 </div>
 
@@ -1018,6 +1019,12 @@ const STORAGE_KEY = 'um_contacts_v4';
 function saveToStorage() {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(allContacts));
+    // Auto-backup: save timestamped copy every time data changes
+    const backupKey = 'um_contacts_backup';
+    const existing = JSON.parse(localStorage.getItem(backupKey) || '{}');
+    existing.data = JSON.stringify(allContacts);
+    existing.savedAt = new Date().toISOString();
+    localStorage.setItem(backupKey, JSON.stringify(existing));
   } catch(e) {
     showToast('שגיאה בשמירה - אחסון מלא?');
   }
@@ -1881,9 +1888,35 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'um-contacts-export-' + today() + '.json';
+  a.download = 'um-contacts-backup-' + today() + '.json';
   a.click();
-  showToast('הנתונים יוצאו בהצלחה ✓');
+  showToast('גיבוי יוצא ✓ שמרי את הקובץ במקום בטוח');
+}
+
+function importBackup() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) { showToast('קובץ לא תקין'); return; }
+        if (!confirm('שחזור מגיבוי יחליף את הנתונים הנוכחיים. להמשיך?')) return;
+        allContacts = data;
+        saveToStorage();
+        applyFilters();
+        detectDuplicates();
+        updateBadges();
+        showToast('✓ שוחזרו ' + allContacts.length + ' קשרים מהגיבוי');
+      } catch(e) { showToast('שגיאה בקריאת הקובץ'); }
+    };
+    reader.readAsText(file, 'utf-8');
+  };
+  input.click();
 }
 
 async function reloadFromJSON() {
