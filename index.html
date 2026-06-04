@@ -1902,8 +1902,9 @@ function renderStats() {
 
 function updateBadges() {
   document.getElementById('badge-all').textContent = filteredContacts.length;
-  const overdue = allContacts.filter(c => c.followUpDate && c.followUpDate <= today()).length;
-  document.getElementById('badge-reminders').textContent = overdue;
+  const overdue = getReminders().filter(r => r.daysLeft <= 0).length;
+  const total = getReminders().length;
+  document.getElementById('badge-reminders').textContent = total;
   document.getElementById('badge-dups').textContent = duplicatePairs.length;
   updateMobileBadge();
 }
@@ -2729,7 +2730,7 @@ function toggleClearBtn() {
 }
 
 function updateMobileBadge() {
-  const overdue = allContacts.filter(c => c.followUpDate && c.followUpDate <= today()).length;
+  const overdue = getReminders().filter(r => r.daysLeft <= 0).length;
   const badge = document.getElementById('mnav-badge');
   if (badge) {
     badge.textContent = overdue;
