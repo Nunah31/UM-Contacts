@@ -2164,7 +2164,6 @@ function openNewCampaign() {
   cpLevelFilter = '';
   document.getElementById('campaign-modal-title').textContent = '📢 הפצה חדשה';
   ['cp-name','cp-brochure','cp-video','cp-message'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('cp-date').value = '';
   cpBrochureBase64 = null;
   document.getElementById('cp-brochure-file').value = '';
   document.getElementById('cp-brochure-preview').style.display = 'none';
@@ -2234,7 +2233,7 @@ function saveCampaign() {
   if (!name) { showToast('נא להזין שם הפצה'); return; }
   const campaign = {
     id: editingCampaignIdx !== null ? campaigns[editingCampaignIdx].id : 'camp-' + Date.now(),
-    name, date: document.getElementById('cp-date').value,
+    name,
     brochure: document.getElementById('cp-brochure').value.trim(),
     brochureImage: cpBrochureBase64 || null,
     video: document.getElementById('cp-video').value.trim(),
@@ -2291,7 +2290,6 @@ function editCampaign(idx) {
   const c = campaigns[idx];
   document.getElementById('campaign-modal-title').textContent = '✏️ עריכת הפצה';
   document.getElementById('cp-name').value = c.name || '';
-  document.getElementById('cp-date').value = c.date || '';
   document.getElementById('cp-brochure').value = c.brochure || '';
   cpBrochureBase64 = c.brochureImage || null;
   if (cpBrochureBase64) {
