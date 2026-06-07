@@ -2827,7 +2827,7 @@ function closeIntroEmail() {
   document.getElementById('intro-email-overlay').style.display = 'none';
 }
 
-function generateIntroEmail() {
+async function generateIntroEmail() {
   const email = document.getElementById('ie-email').value.trim();
   const firstName = document.getElementById('ie-firstname').value.trim() || 'שלום';
   const subject = document.getElementById('ie-subject').value.trim();
