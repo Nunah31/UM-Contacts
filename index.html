@@ -882,7 +882,7 @@
 <div id="intro-email-overlay" onclick="if(event.target===this)closeIntroEmail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;padding:28px;width:540px;max-width:96vw;max-height:92vh;overflow-y:auto;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.25);">
     <h3 style="margin-bottom:6px;font-size:20px">📧 מייל היכרות</h3>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:18px">הנוסח יישמר עם הפרטים שתמלאי — פתיחה באאוטלוק לעריכה לפני שליחה</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:18px">לחיצה תעתיק את המייל ותפתח אאוטלוק → הדביקי <strong>Ctrl+V</strong> בגוף המייל</p>
 
     <div style="background:#f0f7ff;border-radius:8px;padding:12px;margin-bottom:16px;font-size:14px">
       <div><strong>נשלח אל:</strong> <span id="ie-to-preview" style="color:var(--primary)"></span></div>
@@ -925,7 +925,7 @@
 
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeIntroEmail()">ביטול</button>
-      <button class="btn btn-primary" onclick="generateIntroEmail()">📧 פתח באאוטלוק</button>
+      <button class="btn btn-primary" onclick="generateIntroEmail()">📧 העתק + פתח אאוטלוק</button>
     </div>
   </div>
 </div>
@@ -2876,33 +2876,34 @@ function generateIntroEmail() {
     + '<p><strong>אסתר</strong> &bull; <a href="https://wa.me/972535544076" style="color:#25d366;text-decoration:none">📱 053-5544076</a></p>'
     + '</body></html>';
 
-  // Encode to base64 for EML
-  const encoder = new TextEncoder();
-  const bytes = encoder.encode(htmlBody);
-  let binary = '';
-  bytes.forEach(b => { binary += String.fromCharCode(b); });
-  const b64Body = btoa(binary);
+  // Step 1: Copy HTML to clipboard
+  try {
+    await navigator.clipboard.write([
+      new ClipboardItem({ 'text/html': new Blob([htmlBody], { type: 'text/html' }) })
+    ]);
+  } catch(e) {
+    // fallback — open preview window for manual copy
+  }
 
-  const eml = 'To: ' + email + '\r\n'
-    + 'Subject: =?UTF-8?B?' + btoa(unescape(encodeURIComponent(subject))) + '?=\r\n'
-    + 'MIME-Version: 1.0\r\n'
-    + 'Content-Type: text/html; charset=UTF-8\r\n'
-    + 'Content-Transfer-Encoding: base64\r\n'
-    + '\r\n'
-    + b64Body.match(/.{1,76}/g).join('\r\n');
-
-  const blob = new Blob([eml], { type: 'message/rfc822' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'מייל-היכרות-' + (selectedContact.school || 'קשר') + '.eml';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Step 2: Open Outlook via mailto with to + subject
+  const mailtoUrl = 'mailto:' + encodeURIComponent(email)
+    + '?subject=' + encodeURIComponent(subject);
+  window.location.href = mailtoUrl;
 
   closeIntroEmail();
-  showToast('קובץ המייל הורד — לחצי עליו פעמיים לפתיחה באאוטלוק ✓');
+
+  // Step 3: Show instructions
+  setTimeout(() => {
+    showToast('✓ המייל הועתק — הדביקי Ctrl+V בגוף האאוטלוק');
+  }, 800);
+
+  // Also open a preview window
+  const previewWin = window.open('', '_blank', 'width=700,height=800');
+  if (previewWin) {
+    const previewHtml = htmlBody.replace('</body>', '<div style="position:fixed;top:0;left:0;right:0;background:#1e2a3a;color:#fff;padding:10px 16px;font-family:Arial;font-size:14px;display:flex;align-items:center;gap:12px;z-index:999"><span>📋 המייל הועתק ללוח — הדביקי Ctrl+V באאוטלוק</span><button onclick="this.parentElement.parentElement.querySelector(\'.email-body\').select && document.execCommand(\'copy\')" style="background:#f0a500;border:none;color:#fff;padding:6px 14px;border-radius:5px;cursor:pointer;font-family:inherit" onclick="navigator.clipboard.write([new ClipboardItem({\'text/html\':new Blob([document.documentElement.outerHTML],{type:\'text/html\'})})]);alert(\'הועתק!\')">העתק שוב</button></div></body>');
+    previewWin.document.write(previewHtml);
+    previewWin.document.close();
+  }
 }
 // =================== MOBILE ===================
 
