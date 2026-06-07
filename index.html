@@ -878,6 +878,58 @@
   </div>
 </div>
 
+<!-- INTRO EMAIL MODAL -->
+<div id="intro-email-overlay" onclick="if(event.target===this)closeIntroEmail()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px;width:540px;max-width:96vw;max-height:92vh;overflow-y:auto;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.25);">
+    <h3 style="margin-bottom:6px;font-size:20px">📧 מייל היכרות</h3>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:18px">הנוסח יישמר עם הפרטים שתמלאי — פתיחה באאוטלוק לעריכה לפני שליחה</p>
+
+    <div style="background:#f0f7ff;border-radius:8px;padding:12px;margin-bottom:16px;font-size:14px">
+      <div><strong>נשלח אל:</strong> <span id="ie-to-preview" style="color:var(--primary)"></span></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>שם פרטי של הנמענת *</label>
+        <input id="ie-firstname" placeholder="חן">
+      </div>
+      <div class="form-group">
+        <label>מייל יעד *</label>
+        <input id="ie-email" placeholder="chen@school.edu.il" type="email" oninput="document.getElementById('ie-to-preview').textContent=this.value">
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px">קישורים (אופציונלי — יוחלפו בטקסט אם ריק):</div>
+    <div class="form-group">
+      <label>🔗 קישור לקטלוג המופעים</label>
+      <input id="ie-catalog" placeholder="https://...">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>🎬 סרטון "מעלה מעלה"</label>
+        <input id="ie-video1" placeholder="https://youtube.com/...">
+      </div>
+      <div class="form-group">
+        <label>🎬 סרטון "אם תרצי"</label>
+        <input id="ie-video2" placeholder="https://youtube.com/...">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>🔗 קישור לעמוד המופע</label>
+      <input id="ie-showpage" placeholder="https://...">
+    </div>
+    <div class="form-group">
+      <label>נושא המייל</label>
+      <input id="ie-subject" value="מופעי תוכן ומוזיקה לתלמידי בית ספרכם 🎤">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeIntroEmail()">ביטול</button>
+      <button class="btn btn-primary" onclick="generateIntroEmail()">📧 פתח באאוטלוק</button>
+    </div>
+  </div>
+</div>
+
 <!-- MAILING LIST MODAL -->
 <div id="list-modal-overlay" onclick="if(event.target===this)closeListModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;padding:28px;width:580px;max-width:96vw;max-height:90vh;overflow-y:auto;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.25);">
@@ -1343,6 +1395,7 @@ function showContactDetail() {
       <button class="btn btn-outline" onclick="editContact()">✏️ עריכת פרטים</button>
       ${c.performedBefore ? '' : '<button class="btn btn-success btn-sm" onclick="markPerformed()">✓ סמני הופענו</button>'}
       <button class="btn btn-outline" onclick="openQuoteModal()" style="background:#fff8e1;border-color:#f0a500;color:#b37a00">📄 הצעת מחיר</button>
+      <button class="btn btn-outline" onclick="openIntroEmailModal()" style="background:#e8f4fd;border-color:#2c6fad;color:#1a4a7a">📧 מייל היכרות</button>
       <button class="btn btn-danger btn-sm" onclick="deleteCurrentContact()" title="מחיקת קשר">🗑️ מחיקה</button>
     </div>
 
@@ -2750,6 +2803,105 @@ function generateQuote() {
   if (w) { w.document.write(html); w.document.close(); }
   else { showToast('אפשרי חלונות קופצים בדפדפן'); }
   closeQuoteModal();
+}
+
+// =================== INTRO EMAIL ===================
+
+function openIntroEmailModal() {
+  const c = selectedContact;
+  if (!c) return;
+  const firstName = (c.contactName || '').split(' ')[0];
+  document.getElementById('ie-firstname').value = firstName;
+  document.getElementById('ie-email').value = c.email || '';
+  document.getElementById('ie-to-preview').textContent = c.email || '(אין מייל)';
+  document.getElementById('ie-catalog').value = '';
+  document.getElementById('ie-video1').value = '';
+  document.getElementById('ie-video2').value = '';
+  document.getElementById('ie-showpage').value = '';
+  document.getElementById('ie-subject').value = 'מופעי תוכן ומוזיקה לתלמידי בית ספרכם 🎤';
+  document.getElementById('intro-email-overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('ie-firstname').focus(), 100);
+}
+
+function closeIntroEmail() {
+  document.getElementById('intro-email-overlay').style.display = 'none';
+}
+
+function generateIntroEmail() {
+  const email = document.getElementById('ie-email').value.trim();
+  const firstName = document.getElementById('ie-firstname').value.trim() || 'שלום';
+  const subject = document.getElementById('ie-subject').value.trim();
+  const catalog = document.getElementById('ie-catalog').value.trim();
+  const video1 = document.getElementById('ie-video1').value.trim();
+  const video2 = document.getElementById('ie-video2').value.trim();
+  const showpage = document.getElementById('ie-showpage').value.trim();
+
+  if (!email) { showToast('נא להזין כתובת מייל'); return; }
+
+  const catalogLink = catalog
+    ? '<a href="' + catalog + '" style="color:#2c6fad">לחצי כאן לצפייה בקטלוג המופעים המלא</a>'
+    : '<strong>לצפייה בקטלוג המופעים המלא שלנו – לחצי כאן</strong>';
+
+  const video1Link = video1
+    ? '<a href="' + video1 + '" style="color:#2c6fad">לצפייה בסרטון &ldquo;מעלה מעלה&rdquo; מתוך המופע</a>'
+    : 'לצפייה בסרטון &ldquo;מעלה מעלה&rdquo; מתוך המופע';
+
+  const video2Link = video2
+    ? '<a href="' + video2 + '" style="color:#2c6fad">לצפייה בסרטון &ldquo;אם תרצי&rdquo; מתוך המופע</a>'
+    : 'לצפייה בסרטון &ldquo;אם תרצי&rdquo; מתוך המופע';
+
+  const showpageLink = showpage
+    ? '<a href="' + showpage + '" style="color:#2c6fad">למעבר לעמוד המופע לחצי כאן</a>'
+    : 'למעבר לעמוד המופע לחצי כאן';
+
+  const htmlBody = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body dir="rtl" style="font-family:Arial,sans-serif;font-size:15px;line-height:1.8;color:#222;max-width:640px;margin:0 auto;padding:20px">'
+    + '<p>שלום ' + firstName + ',</p>'
+    + '<p>נעים מאוד, 🙂 שמי אסתר.<br>'
+    + 'דיברתי עם מנהלת המשרד שלכם, והבנתי שאת הכתובת המדויקת לכל ענייני המופעים והתוכן החברתי לתלמידים בבית הספר.</p>'
+    + '<p>לאודי יש ניסיון רב שנים בהופעות מול תלמידים, ואנו מציעים מגוון מופעי תוכן מעשירים לצד אירועי שיא לאורך כל שנת הלימודים: מופעי תחילת/סוף שנה, &ldquo;שלום כיתה א&rsquo;&rdquo;, חגי תשרי, פורים, יום העצמאות, יום ירושלים ועוד. 🎤</p>'
+    + '<p>' + catalogLink + '</p>'
+    + '<p><strong>🌟 המופע המוביל: &ldquo;מסע ישראלי&rdquo;</strong></p>'
+    + '<p>מופע מוזיקלי חוויתי המותאם אישית לחג או לאירוע הספציפי שלשמו הוזמן. 🎹<br>'
+    + 'המופע מלווה במצגת מילים אינטראקטיבית ומסונכרנת, המאפשרת לתלמידים ולמורים לקחת חלק פעיל, לשיר ולרקוד יחד.</p>'
+    + '<ul style="margin:12px 0;padding-right:24px">'
+    + '<li>🔒 המופע מאושר בתוכנית גפ&rdquo;ן ובסל תרבות ארצי (היצע אמנותי) לכיתות א&rsquo; עד י&rdquo;ב.</li>'
+    + '<li>📍 ניתן לקיים את המופע בחצר בית הספר, באולם ספורט או באולם מוחשך (עם מקרן ומסך).</li>'
+    + '</ul>'
+    + '<p>לטעימה קטנה מתוך האנרגיה במופע, מוזמנת ללחוץ על הקישורים:</p>'
+    + '<p>' + video1Link + '</p>'
+    + '<p>' + video2Link + '</p>'
+    + '<p>' + showpageLink + '</p>'
+    + '<p>אשמח מאוד לעמוד לרשותך, לענות על כל שאלה ולהתאים לכם הצעת מחיר מדויקת למופע שתבחרו 😊</p>'
+    + '<p><strong>אסתר</strong> &bull; 053-5544076</p>'
+    + '</body></html>';
+
+  // Encode to base64 for EML
+  const encoder = new TextEncoder();
+  const bytes = encoder.encode(htmlBody);
+  let binary = '';
+  bytes.forEach(b => { binary += String.fromCharCode(b); });
+  const b64Body = btoa(binary);
+
+  const eml = 'To: ' + email + '\r\n'
+    + 'Subject: =?UTF-8?B?' + btoa(unescape(encodeURIComponent(subject))) + '?=\r\n'
+    + 'MIME-Version: 1.0\r\n'
+    + 'Content-Type: text/html; charset=UTF-8\r\n'
+    + 'Content-Transfer-Encoding: base64\r\n'
+    + '\r\n'
+    + b64Body.match(/.{1,76}/g).join('\r\n');
+
+  const blob = new Blob([eml], { type: 'message/rfc822' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'מייל-היכרות-' + (selectedContact.school || 'קשר') + '.eml';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  closeIntroEmail();
+  showToast('קובץ המייל הורד — לחצי עליו פעמיים לפתיחה באאוטלוק ✓');
 }
 // =================== MOBILE ===================
 
