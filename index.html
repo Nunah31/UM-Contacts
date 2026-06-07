@@ -1121,11 +1121,50 @@ function saveToStorage() {
 }
 
 function loadFromStorage() {
+  // Try main storage key
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
-    allContacts = JSON.parse(saved);
-    return true;
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        allContacts = parsed;
+        return true;
+      }
+    } catch(e) {}
   }
+
+  // Try older keys
+  for (const oldKey of ['um_contacts_v4','um_contacts_v3','um_contacts_v2']) {
+    const old = localStorage.getItem(oldKey);
+    if (old) {
+      try {
+        const parsed = JSON.parse(old);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          allContacts = parsed;
+          localStorage.setItem(STORAGE_KEY, old); // migrate to current key
+          return true;
+        }
+      } catch(e) {}
+    }
+  }
+
+  // Try auto-backup
+  const backup = localStorage.getItem('um_contacts_backup');
+  if (backup) {
+    try {
+      const b = JSON.parse(backup);
+      if (b.data) {
+        const parsed = JSON.parse(b.data);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          allContacts = parsed;
+          localStorage.setItem(STORAGE_KEY, b.data);
+          console.log('Restored from backup:', parsed.length, 'contacts');
+          return true;
+        }
+      }
+    } catch(e) {}
+  }
+
   return false;
 }
 
