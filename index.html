@@ -2814,10 +2814,10 @@ function openIntroEmailModal() {
   document.getElementById('ie-firstname').value = firstName;
   document.getElementById('ie-email').value = c.email || '';
   document.getElementById('ie-to-preview').textContent = c.email || '(אין מייל)';
-  document.getElementById('ie-catalog').value = '';
-  document.getElementById('ie-video1').value = '';
-  document.getElementById('ie-video2').value = '';
-  document.getElementById('ie-showpage').value = '';
+  document.getElementById('ie-catalog').value = 'https://heyzine.com/flip-book/61d9c0cc5e.html#page/1';
+  document.getElementById('ie-video1').value = 'https://youtu.be/AXWOQLN3wY8?si=E4RWz2iw5b5OHjoy';
+  document.getElementById('ie-video2').value = 'https://youtu.be/EggGrBXXpm0?si=K1UrvXYsK3MjOrM7';
+  document.getElementById('ie-showpage').value = 'https://udihabari.com/%d7%90%d7%95%d7%93%d7%99-%d7%94%d7%91%d7%a8%d7%99-%d7%9e%d7%a1%d7%a2-%d7%99%d7%a9%d7%a8%d7%90%d7%9c%d7%99/';
   document.getElementById('ie-subject').value = 'מופעי תוכן ומוזיקה לתלמידי בית ספרכם 🎤';
   document.getElementById('intro-email-overlay').style.display = 'flex';
   setTimeout(() => document.getElementById('ie-firstname').focus(), 100);
@@ -2872,7 +2872,7 @@ function generateIntroEmail() {
     + '<p>' + video2Link + '</p>'
     + '<p>' + showpageLink + '</p>'
     + '<p>אשמח מאוד לעמוד לרשותך, לענות על כל שאלה ולהתאים לכם הצעת מחיר מדויקת למופע שתבחרו 😊</p>'
-    + '<p><strong>אסתר</strong> &bull; 053-5544076</p>'
+    + '<p><strong>אסתר</strong> &bull; <a href="https://wa.me/972535544076" style="color:#25d366;text-decoration:none">📱 053-5544076</a></p>'
     + '</body></html>';
 
   // Encode to base64 for EML
