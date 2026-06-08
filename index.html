@@ -186,6 +186,7 @@
   /* DETAIL PANEL */
   #detail-panel {
     flex: 1;
+    min-width: 0;
     overflow-y: auto;
     background: var(--bg);
     padding: 20px;
@@ -392,7 +393,7 @@
 
   /* VIEWS */
   .view { display: none; }
-  .view.active { display: block; }
+  .view.active { display: block; width: 100%; max-width: 100%; }
 
   /* Secondary views — fill the entire main content area (list+detail) on desktop, no wasted space */
   .secondary-view.active {
