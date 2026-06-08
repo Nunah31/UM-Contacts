@@ -395,11 +395,11 @@
   .view { display: none; }
   .view.active { display: block; width: 100%; max-width: 100%; }
 
-  /* Secondary views — fill the entire main content area (list+detail) on desktop, no wasted space */
+  /* Secondary views — fill the entire area to the left of the sidebar (covers list+detail), keeping the sidebar/menu visible */
   .secondary-view.active {
-    position: absolute;
+    position: fixed;
     top: 0; bottom: 0;
-    right: 0;
+    right: 240px;
     left: 0;
     background: var(--bg);
     overflow-y: auto;
