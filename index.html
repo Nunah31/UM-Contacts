@@ -1872,10 +1872,10 @@ function renderDuplicates() {
 
   const html = duplicatePairs.map(([a, b], idx) => `
     <div class="dup-pair" data-idx="${idx}">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
         <input type="checkbox" class="dup-checkbox" data-idx="${idx}" onchange="updateBulkButtons()">
         <span style="font-size:12px;color:var(--muted)">זוג #${idx + 1}</span>
-        <div style="margin-right:auto;display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="btn btn-outline btn-sm" onclick="selectContact('${a.id}')">פתחי #1</button>
           <button class="btn btn-outline btn-sm" onclick="selectContact('${b.id}')">פתחי #2</button>
           <button class="btn btn-success btn-sm" onclick="mergeContacts('${a.id}','${b.id}',${idx})">🔀 מזגי</button>
