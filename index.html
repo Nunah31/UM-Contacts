@@ -1804,7 +1804,7 @@ function renderReminders() {
       else if (r.daysLeft === 0) { badge = 'היום!'; cls = 'color:var(--orange)'; }
       else { badge = `בעוד ${r.daysLeft} ימים`; }
       const timeStr = r.reminderTime ? ' · ⏰ ' + r.reminderTime : '';
-      return `<div class="conv-entry" style="cursor:pointer" onclick="selectContact('${r.id}')">
+      return `<div class="conv-entry" style="cursor:pointer" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
           <strong style="font-size:15px">${escHtml(r.school)}</strong>
           <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
