@@ -747,13 +747,21 @@
 </div>
 
 <div id="view-duplicates" class="view secondary-view">
-  <div class="dup-sticky-bar">
-    <span style="font-size:16px;font-weight:700">⚠️ כפולים (<span id="dup-count-label">0</span>)</span>
-    <label style="font-size:13px;display:flex;align-items:center;gap:5px;cursor:pointer;margin-right:auto;">
-      <input type="checkbox" id="select-all-dups" onchange="toggleSelectAllDups(this)"> סמני הכל
-    </label>
-    <button class="btn btn-primary btn-sm" onclick="mergeSelected()">🔀 מזגי נבחרים</button>
-    <button class="btn btn-danger btn-sm" onclick="deleteSelected()">🗑️ מחקי נבחרים (#2)</button>
+  <div class="dup-sticky-bar" style="flex-wrap:nowrap;flex-direction:column;align-items:stretch;gap:8px">
+    <!-- שורה עליונה: כותרת + סמני הכל -->
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:16px;font-weight:700">⚠️ כפולים (<span id="dup-count-label">0</span>)</span>
+      <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;margin-right:auto;background:#F3F4F6;padding:5px 12px;border-radius:8px;border:1px solid #D1D5DB">
+        <input type="checkbox" id="select-all-dups" onchange="toggleSelectAllDups(this)" style="width:16px;height:16px;cursor:pointer">
+        <span>סמני הכל</span>
+      </label>
+      <span id="selected-count-label" style="font-size:13px;color:#6B7280"></span>
+    </div>
+    <!-- שורה תחתונה: כפתורי פעולה -->
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary btn-sm" onclick="mergeSelected()" style="flex:1">🔀 מזגי נבחרים</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSelected()" style="flex:1">🗑️ מחקי נבחרים (#2)</button>
+    </div>
   </div>
   <p style="font-size:12px;color:var(--muted);margin-bottom:14px;margin-top:4px;">לכל זוג: סמני ✓ לבחירה. "מזגי" — מאחד את השניים ל-#1. "מחקי #2" — מוחק את הכרטיס הימני.</p>
   <div id="duplicates-list"></div>
@@ -1904,6 +1912,7 @@ function renderDuplicates() {
 
 function toggleSelectAllDups(cb) {
   document.querySelectorAll('.dup-checkbox').forEach(c => c.checked = cb.checked);
+  updateBulkButtons();
 }
 
 function getSelectedPairIndices() {
@@ -1911,7 +1920,9 @@ function getSelectedPairIndices() {
 }
 
 function updateBulkButtons() {
-  // visual feedback only — buttons always visible
+  const n = getSelectedPairIndices().length;
+  const lbl = document.getElementById('selected-count-label');
+  if (lbl) lbl.textContent = n > 0 ? `${n} נבחרו` : '';
 }
 
 function mergeSelected() {
