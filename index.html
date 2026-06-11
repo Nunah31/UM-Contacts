@@ -1745,6 +1745,7 @@ function setView(view, btn) {
     renderReminders();
     document.getElementById('view-reminders').classList.add('active');
   } else if (view === 'duplicates') {
+    detectDuplicates();
     renderDuplicates();
     document.getElementById('view-duplicates').classList.add('active');
   } else if (view === 'stats') {
@@ -1952,6 +1953,7 @@ function deleteSelected() {
     allContacts = allContacts.filter(c => c.id !== pair[1].id);
     duplicatePairs.splice(idx, 1);
   });
+  detectDuplicates();
   saveToStorage();
   applyFilters();
   renderDuplicates();
@@ -1962,7 +1964,7 @@ function deleteSelected() {
 function deleteContact(id, pairIdx) {
   if (!confirm('למחוק כרטיס זה לצמיתות?')) return;
   allContacts = allContacts.filter(c => c.id !== id);
-  duplicatePairs.splice(pairIdx, 1);
+  detectDuplicates();
   saveToStorage();
   applyFilters();
   renderDuplicates();
@@ -1973,10 +1975,15 @@ function deleteContact(id, pairIdx) {
 function mergeContacts(idA, idB, pairIdx) {
   const a = allContacts.find(c => c.id === idA);
   const b = allContacts.find(c => c.id === idB);
-  if (!a || !b) return;
+  if (!a || !b) {
+    detectDuplicates();
+    renderDuplicates();
+    showToast('הרשימה התרעננה — נסי שוב');
+    return;
+  }
   doMerge(a, b);
   allContacts = allContacts.filter(c => c.id !== idB);
-  duplicatePairs.splice(pairIdx, 1);
+  detectDuplicates();
   saveToStorage();
   applyFilters();
   renderDuplicates();
