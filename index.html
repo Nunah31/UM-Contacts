@@ -354,7 +354,7 @@
   }
 
   /* STATS */
-  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
   .stat-card { background: var(--card-bg); border-radius: 10px; padding: 16px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
   .stat-card .stat-num { font-size: 28px; font-weight: 700; color: var(--primary); }
   .stat-card .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
@@ -778,18 +778,22 @@
 </div>
 
 <div id="view-campaigns" class="view secondary-view">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-    <h2 style="font-size:20px">📢 הפצות</h2>
-    <button class="btn btn-primary" onclick="openNewCampaign()">+ הפצה חדשה</button>
-    <button class="btn btn-outline" onclick="setView('lists',null)" style="margin-right:auto">📋 רשימות תפוצה</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <h2 style="font-size:20px">📢 הפצות</h2>
+      <button class="btn btn-primary" onclick="openNewCampaign()">+ הפצה חדשה</button>
+    </div>
+    <button class="btn btn-outline" onclick="setView('lists',null)">📋 רשימות תפוצה</button>
   </div>
   <div id="campaigns-list"></div>
 </div>
 
 <div id="view-lists" class="view secondary-view">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
-    <button class="btn btn-outline btn-sm" onclick="setView('campaigns',null)">← חזרה להפצות</button>
-    <h2 style="font-size:20px">📋 רשימות תפוצה</h2>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="setView('campaigns',null)">← חזרה להפצות</button>
+      <h2 style="font-size:20px">📋 רשימות תפוצה</h2>
+    </div>
     <button class="btn btn-primary" onclick="openNewList()">+ רשימה חדשה</button>
   </div>
   <p style="font-size:13px;color:var(--muted);margin-bottom:16px">רשימות שמורות של אנשי קשר — ניתן לעדכן ולהשתמש בכל הפצה</p>
