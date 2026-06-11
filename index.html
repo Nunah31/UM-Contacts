@@ -343,11 +343,14 @@
 
   /* REMINDERS */
   #reminder-banner {
-    position: fixed; top: 0; left: 0; right: 0;
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
     background: var(--red); color: #fff;
-    padding: 10px 20px; text-align: center; font-size: 14px;
-    z-index: 2000; display: none; cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    padding: 10px 20px; font-size: 14px;
+    z-index: 2000; display: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,.3);
+    border-radius: 30px;
+    white-space: nowrap;
+    align-items: center; gap: 10px;
   }
 
   /* STATS */
@@ -646,8 +649,9 @@
   </div>
 </div>
 
-<div id="reminder-banner" onclick="dismissReminder()">
-  🔔 יש לך <span id="reminder-count"></span> תזכורות להיום! לחצי לצפייה
+<div id="reminder-banner">
+  <span onclick="dismissReminder()" style="cursor:pointer">🔔 יש לך <span id="reminder-count"></span> תזכורות להיום! לחצי לצפייה</span>
+  <button onclick="document.getElementById('reminder-banner').style.display='none'" style="background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:50%;width:22px;height:22px;font-size:13px;cursor:pointer;line-height:1;padding:0;flex-shrink:0">✕</button>
 </div>
 
 <!-- SIDEBAR -->
@@ -1828,7 +1832,7 @@ function renderReminders() {
 function checkReminders() {
   const overdue = getReminders().filter(c => c.daysLeft <= 0);
   if (overdue.length > 0) {
-    document.getElementById('reminder-banner').style.display = 'block';
+    document.getElementById('reminder-banner').style.display = 'flex';
     document.getElementById('reminder-count').textContent = overdue.length;
   }
 }
