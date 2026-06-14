@@ -288,6 +288,9 @@
     border: 1px solid var(--border); border-radius: 8px;
     padding: 12px; margin-bottom: 10px; background: #fafbfc;
     position: relative;
+    max-width: 100%;
+    overflow: hidden;
+    word-break: break-word;
   }
   .conv-entry .conv-date { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
   .conv-entry .conv-notes { font-size: 15px; white-space: pre-wrap; line-height: 1.6; }
@@ -426,8 +429,11 @@
     left: 0;
     background: var(--bg);
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 20px;
     z-index: 20;
+    box-sizing: border-box;
+    max-width: calc(100vw - 240px);
   }
 
   /* Toast */
@@ -1951,15 +1957,15 @@ function renderReminders() {
       const timeStr = r.reminderTime ? ' · ⏰ ' + r.reminderTime : '';
       const clearArg = r._reminderType === 'conv' ? `'${r.id}','conv',${r._convIdx}` : `'${r.id}','contact'`;
       return `<div class="conv-entry">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <strong style="font-size:15px;cursor:pointer" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school)}</strong>
-          <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+          <strong style="font-size:15px;cursor:pointer;flex:1;min-width:0" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school)}</strong>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
+            <button class="btn btn-outline btn-sm" onclick="clearReminderInList(${clearArg})" style="font-size:12px;white-space:nowrap">✓ נוקה</button>
+          </div>
         </div>
-        <div style="font-size:13px;color:var(--muted);margin-top:4px">${escHtml(r.city)} · 📅 ${formatDate(r.reminderDate)}${timeStr}</div>
-        ${r.reminderReason ? `<div style="font-size:13px;margin-top:4px">${escHtml(r.reminderReason)}</div>` : ''}
-        <div style="margin-top:8px;text-align:left">
-          <button class="btn btn-outline btn-sm" onclick="clearReminderInList(${clearArg})" style="font-size:12px">✓ נוקה</button>
-        </div>
+        <div style="font-size:13px;color:var(--muted);margin-top:4px;word-break:break-word">${escHtml(r.city)} · 📅 ${formatDate(r.reminderDate)}${timeStr}</div>
+        ${r.reminderReason ? `<div style="font-size:13px;margin-top:4px;word-break:break-word">${escHtml(r.reminderReason)}</div>` : ''}
       </div>`;
     }).join('');
   document.getElementById('reminders-list').innerHTML = html;
@@ -3370,7 +3376,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=19').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=20').catch(() => {});
   });
 }
 
