@@ -1677,6 +1677,22 @@ function saveFollowUp() {
   showToast('תזכורת נקבעה ✓');
 }
 
+function clearReminderInList(contactId, type, convIdx) {
+  const c = allContacts.find(x => x.id === contactId);
+  if (!c) return;
+  if (type === 'contact') {
+    c.followUpDate = null;
+    c.followUpTime = null;
+    c.followUpReason = null;
+  } else if (type === 'conv' && c.conversations && c.conversations[convIdx]) {
+    c.conversations[convIdx].followUpDate = null;
+    c.conversations[convIdx].followUpTime = null;
+  }
+  saveToStorage();
+  renderReminders();
+  checkReminders();
+}
+
 function clearFollowUp() {
   selectedContact.followUpDate = null;
   selectedContact.followUpReason = null;
@@ -1897,11 +1913,12 @@ function getReminders() {
         reminderDate: c.followUpDate,
         reminderTime: c.followUpTime || null,
         reminderReason: c.followUpReason || '',
-        daysLeft: Math.round((new Date(c.followUpDate) - new Date(todayStr)) / 86400000)
+        daysLeft: Math.round((new Date(c.followUpDate) - new Date(todayStr)) / 86400000),
+        _reminderType: 'contact'
       });
     }
     // Conversation-level follow-ups
-    (c.conversations || []).forEach(conv => {
+    (c.conversations || []).forEach((conv, convIdx) => {
       if (conv.followUpDate) {
         // avoid exact duplicate with contact-level reminder
         const alreadyAdded = items.some(i => i.id === c.id && i.reminderDate === conv.followUpDate);
@@ -1911,7 +1928,9 @@ function getReminders() {
             reminderDate: conv.followUpDate,
             reminderTime: conv.followUpTime || null,
             reminderReason: conv.notes ? conv.notes.slice(0, 80) : '',
-            daysLeft: Math.round((new Date(conv.followUpDate) - new Date(todayStr)) / 86400000)
+            daysLeft: Math.round((new Date(conv.followUpDate) - new Date(todayStr)) / 86400000),
+            _reminderType: 'conv',
+            _convIdx: convIdx
           });
         }
       }
@@ -1930,13 +1949,17 @@ function renderReminders() {
       else if (r.daysLeft === 0) { badge = 'היום!'; cls = 'color:var(--orange)'; }
       else { badge = `בעוד ${r.daysLeft} ימים`; }
       const timeStr = r.reminderTime ? ' · ⏰ ' + r.reminderTime : '';
-      return `<div class="conv-entry" style="cursor:pointer" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">
+      const clearArg = r._reminderType === 'conv' ? `'${r.id}','conv',${r._convIdx}` : `'${r.id}','contact'`;
+      return `<div class="conv-entry">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-          <strong style="font-size:15px">${escHtml(r.school)}</strong>
+          <strong style="font-size:15px;cursor:pointer" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school)}</strong>
           <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
         </div>
         <div style="font-size:13px;color:var(--muted);margin-top:4px">${escHtml(r.city)} · 📅 ${formatDate(r.reminderDate)}${timeStr}</div>
         ${r.reminderReason ? `<div style="font-size:13px;margin-top:4px">${escHtml(r.reminderReason)}</div>` : ''}
+        <div style="margin-top:8px;text-align:left">
+          <button class="btn btn-outline btn-sm" onclick="clearReminderInList(${clearArg})" style="font-size:12px">✓ נוקה</button>
+        </div>
       </div>`;
     }).join('');
   document.getElementById('reminders-list').innerHTML = html;
@@ -3347,7 +3370,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=18').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=19').catch(() => {});
   });
 }
 
