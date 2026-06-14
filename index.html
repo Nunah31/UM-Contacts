@@ -389,6 +389,26 @@
   .contact-tooltip-box .tip-entry { border-top: 1px solid #2e3f55; padding-top: 6px; margin-top: 6px; font-size: 13px; }
   .contact-tooltip-box .tip-date { color: #8899aa; font-size: 12px; }
 
+  /* DATE WRAPPER — hides browser locale text, shows DD/MM/YYYY overlay */
+  .date-wrap { position: relative; display: block; }
+  .date-wrap input[type="date"] { width: 100%; color: transparent; cursor: pointer; }
+  .date-wrap input[type="date"]::-webkit-datetime-edit { color: transparent; }
+  .date-fmt-overlay {
+    position: absolute; top: 50%; right: 36px;
+    transform: translateY(-50%);
+    pointer-events: none; font-size: 14px; color: var(--text);
+  }
+
+  /* CLOCK PICKER */
+  #clock-picker-overlay { direction: ltr; }
+  .clock-header { background: var(--primary); border-radius: 12px 12px 0 0; padding: 16px 24px; color: #fff; text-align: center; }
+  .clock-time-display { font-size: 48px; font-weight: 300; letter-spacing: 4px; cursor: pointer; }
+  .clock-time-display .active-part { color: #fff; }
+  .clock-time-display .dim-part { color: rgba(255,255,255,.5); }
+  .clock-body { padding: 16px; display: flex; flex-direction: column; align-items: center; }
+  .clock-face { width: 240px; height: 240px; position: relative; border-radius: 50%; background: #f0f4f8; }
+  .clock-actions { display: flex; gap: 10px; padding: 12px 20px; justify-content: flex-end; border-top: 1px solid var(--border); }
+
   /* SCROLLBAR */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -807,12 +827,15 @@
     <div class="form-row">
       <div class="form-group">
         <label>📅 תאריך לחזרה</label>
-        <input type="date" id="fu-date" oninput="document.getElementById('fu-date-fmt').textContent=formatDate(this.value)">
-        <small id="fu-date-fmt" style="color:var(--muted);font-size:12px"></small>
+        <div class="date-wrap" onclick="this.querySelector('input').showPicker&&this.querySelector('input').showPicker()">
+          <span class="date-fmt-overlay" id="fu-date-disp">בחרי תאריך</span>
+          <input type="date" id="fu-date" oninput="updateDateDisp(this,'fu-date-disp')">
+        </div>
       </div>
       <div class="form-group">
         <label>⏰ שעה</label>
-        <input type="time" id="fu-time">
+        <button type="button" class="btn btn-outline" style="width:100%;justify-content:center" onclick="openClockPicker('fu-time')" id="fu-time-btn">בחרי שעה</button>
+        <input type="hidden" id="fu-time">
       </div>
     </div>
     <div class="form-group" style="margin-top:12px">
@@ -834,8 +857,11 @@
     <div class="form-row">
       <div class="form-group">
         <label>תאריך השיחה</label>
-        <input type="date" id="call-date" oninput="document.getElementById('call-date-fmt').textContent=formatDate(this.value)">
-        <small id="call-date-fmt" style="color:var(--muted);font-size:12px"></small>
+        <div class="date-wrap" onclick="this.querySelector('input[type=date]').showPicker&&this.querySelector('input[type=date]').showPicker()">
+          <span class="date-fmt-overlay" id="call-date-disp">בחרי תאריך</span>
+          <input type="date" id="call-date" oninput="updateDateDisp(this,'call-date-disp')">
+        </div>
+
       </div>
       <div class="form-group">
         <label>סטטוס</label>
@@ -867,11 +893,15 @@
     <div class="form-row">
       <div class="form-group">
         <label>📅 תזכורת - לחזור בתאריך</label>
-        <input type="date" id="call-followup">
+        <div class="date-wrap" onclick="this.querySelector('input').showPicker&&this.querySelector('input').showPicker()">
+          <span class="date-fmt-overlay" id="call-followup-disp">בחרי תאריך</span>
+          <input type="date" id="call-followup" oninput="updateDateDisp(this,'call-followup-disp')">
+        </div>
       </div>
       <div class="form-group">
         <label>⏰ שעה</label>
-        <input type="time" id="call-followup-time" placeholder="09:00">
+        <button type="button" class="btn btn-outline" style="width:100%;justify-content:center" onclick="openClockPicker('call-followup-time')" id="call-followup-time-btn">בחרי שעה</button>
+        <input type="hidden" id="call-followup-time">
       </div>
     </div>
     <div class="form-group">
@@ -895,7 +925,12 @@
     </div>
     <div class="form-row">
       <div class="form-group"><label>שם המופע *</label><input id="q-show-name" placeholder='למשל: מסע ישראלי'></div>
-      <div class="form-group"><label>תאריך מופע</label><input type="date" id="q-date"></div>
+      <div class="form-group"><label>תאריך מופע</label>
+        <div class="date-wrap" onclick="this.querySelector('input').showPicker&&this.querySelector('input').showPicker()">
+          <span class="date-fmt-overlay" id="q-date-disp">בחרי תאריך</span>
+          <input type="date" id="q-date" oninput="updateDateDisp(this,'q-date-disp')">
+        </div>
+      </div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>מקום המופע</label><input id="q-location" placeholder="אולם ספורט של בית הספר"></div>
@@ -1139,6 +1174,28 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- CLOCK PICKER -->
+<div id="clock-picker-overlay" onclick="if(event.target===this)closeClockPicker()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:2000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.3);min-width:280px;">
+    <div class="clock-header">
+      <div class="clock-time-display" id="clock-display">
+        <span id="clock-h-disp" onclick="setClockMode('hour')" style="cursor:pointer">00</span><span style="opacity:.7">:</span><span id="clock-m-disp" onclick="setClockMode('minute')" style="cursor:pointer">00</span>
+      </div>
+      <div style="font-size:12px;opacity:.7;margin-top:4px" id="clock-mode-label">בחרי שעה</div>
+    </div>
+    <div class="clock-body">
+      <div class="clock-face" id="clock-face">
+        <svg id="clock-svg" width="240" height="240" style="display:block"></svg>
+      </div>
+    </div>
+    <div class="clock-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeClockPicker()">ביטול</button>
+      <button class="btn btn-outline btn-sm" onclick="clearClockPicker()" style="color:var(--red);border-color:var(--red)">נקה</button>
+      <button class="btn btn-primary btn-sm" onclick="saveClockPicker()">אישור</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // =================== DATA MANAGEMENT ===================
@@ -1532,12 +1589,15 @@ function statusLabel(s) {
 
 function openAddCallModal() {
   document.getElementById('call-date').value = today();
+  updateDateDisp(document.getElementById('call-date'), 'call-date-disp');
   document.getElementById('call-notes').value = '';
   document.getElementById('call-status').value = 'talked';
   document.getElementById('call-contact-name').value = selectedContact.contactName || '';
   document.getElementById('call-contact-phone').value = selectedContact.mobile || '';
   document.getElementById('call-followup').value = '';
+  const cfd = document.getElementById('call-followup-disp'); if (cfd) cfd.textContent = 'בחרי תאריך';
   document.getElementById('call-followup-time').value = '';
+  const cfb = document.getElementById('call-followup-time-btn'); if (cfb) cfb.textContent = 'בחרי שעה';
   document.getElementById('call-followup-reason').value = '';
   document.getElementById('modal-overlay').classList.add('open');
   setTimeout(() => document.getElementById('call-notes').focus(), 100);
@@ -1659,12 +1719,17 @@ function editConv(sortedIdx) {
   const overlay = document.getElementById('modal-overlay');
   document.getElementById('modal-title').textContent = '✏️ עריכת שיחה';
   document.getElementById('call-date').value = conv.date || today();
+  updateDateDisp(document.getElementById('call-date'), 'call-date-disp');
   document.getElementById('call-status').value = conv.status || 'talked';
   document.getElementById('call-notes').value = conv.notes || '';
   document.getElementById('call-contact-name').value = selectedContact.contactName || '';
   document.getElementById('call-contact-phone').value = selectedContact.mobile || '';
   document.getElementById('call-followup').value = conv.followUpDate || '';
+  const cfd2 = document.getElementById('call-followup-disp');
+  if (cfd2) cfd2.textContent = conv.followUpDate ? formatDate(conv.followUpDate) : 'בחרי תאריך';
   document.getElementById('call-followup-time').value = conv.followUpTime || '';
+  const cfb2 = document.getElementById('call-followup-time-btn');
+  if (cfb2) cfb2.textContent = conv.followUpTime ? '⏰ ' + conv.followUpTime : 'בחרי שעה';
   document.getElementById('call-followup-reason').value = '';
   overlay.classList.add('open');
 
@@ -3133,6 +3198,96 @@ function updateMobileBadge() {
   }
 }
 
+// =================== DATE DISPLAY (DD/MM/YYYY overlay) ===================
+function updateDateDisp(input, dispId) {
+  const el = document.getElementById(dispId);
+  if (!el) return;
+  el.textContent = input.value ? formatDate(input.value) : 'בחרי תאריך';
+}
+
+// =================== CLOCK PICKER ===================
+let _clockTarget = null, _clockMode = 'hour', _clockH = 8, _clockM = 0;
+
+function openClockPicker(inputId) {
+  _clockTarget = inputId;
+  const val = document.getElementById(inputId).value;
+  if (val) { const p = val.split(':'); _clockH = +p[0]||0; _clockM = Math.round((+p[1]||0)/5)*5%60; }
+  else { _clockH = 8; _clockM = 0; }
+  _clockMode = 'hour';
+  _drawClock();
+  document.getElementById('clock-picker-overlay').style.display = 'flex';
+}
+
+function closeClockPicker() { document.getElementById('clock-picker-overlay').style.display = 'none'; }
+
+function clearClockPicker() {
+  document.getElementById(_clockTarget).value = '';
+  const btn = document.getElementById(_clockTarget + '-btn');
+  if (btn) btn.textContent = 'בחרי שעה';
+  closeClockPicker();
+}
+
+function saveClockPicker() {
+  const hh = String(_clockH).padStart(2,'0'), mm = String(_clockM).padStart(2,'0');
+  document.getElementById(_clockTarget).value = hh + ':' + mm;
+  const btn = document.getElementById(_clockTarget + '-btn');
+  if (btn) btn.textContent = '⏰ ' + hh + ':' + mm;
+  closeClockPicker();
+}
+
+function setClockMode(mode) { _clockMode = mode; _drawClock(); }
+
+function _drawClock() {
+  const hh = String(_clockH).padStart(2,'0'), mm = String(_clockM).padStart(2,'0');
+  document.getElementById('clock-h-disp').style.opacity = _clockMode==='hour' ? '1' : '0.5';
+  document.getElementById('clock-m-disp').style.opacity = _clockMode==='minute' ? '1' : '0.5';
+  document.getElementById('clock-h-disp').textContent = hh;
+  document.getElementById('clock-m-disp').textContent = mm;
+  document.getElementById('clock-mode-label').textContent = _clockMode==='hour' ? 'בחרי שעה' : 'בחרי דקות';
+
+  const cx=120, cy=120, primary='#2c6fad';
+  let marks = [];
+
+  if (_clockMode === 'hour') {
+    // 24h: 0-11 outer ring, 12-23 inner ring
+    for (let h=0; h<24; h++) {
+      const isOuter = h < 12;
+      const r = isOuter ? 88 : 60;
+      const angle = (h % 12) * 30 - 90;
+      const rad = angle * Math.PI / 180;
+      const x = cx + r * Math.cos(rad), y = cy + r * Math.sin(rad);
+      const sel = h === _clockH;
+      marks.push(`<g style="cursor:pointer" onclick="_pickHour(${h})">
+        <circle cx="${x}" cy="${y}" r="18" fill="${sel ? primary : 'transparent'}"/>
+        <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="${isOuter?13:11}" fill="${sel?'#fff':'#333'}">${h===0?'00':h}</text>
+      </g>`);
+      // hand to selected
+      if (sel) marks.unshift(`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${primary}" stroke-width="2" stroke-linecap="round"/>`);
+    }
+  } else {
+    // minutes: 0,5,10,...55
+    for (let i=0; i<12; i++) {
+      const m = i * 5, r = 88;
+      const angle = i * 30 - 90, rad = angle * Math.PI / 180;
+      const x = cx + r * Math.cos(rad), y = cy + r * Math.sin(rad);
+      const sel = m === _clockM;
+      marks.push(`<g style="cursor:pointer" onclick="_pickMin(${m})">
+        <circle cx="${x}" cy="${y}" r="18" fill="${sel ? primary : 'transparent'}"/>
+        <text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central" font-size="13" fill="${sel?'#fff':'#333'}">${String(m).padStart(2,'0')}</text>
+      </g>`);
+      if (sel) marks.unshift(`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${primary}" stroke-width="2" stroke-linecap="round"/>`);
+    }
+  }
+
+  document.getElementById('clock-svg').innerHTML =
+    `<circle cx="${cx}" cy="${cy}" r="116" fill="#f0f4f8"/>
+     <circle cx="${cx}" cy="${cy}" r="4" fill="${primary}"/>
+     ${marks.join('')}`;
+}
+
+function _pickHour(h) { _clockH = h; _clockMode = 'minute'; _drawClock(); }
+function _pickMin(m) { _clockM = m; _drawClock(); }
+
 // =================== NOTIFICATIONS ===================
 
 async function requestNotificationPermission() {
@@ -3192,7 +3347,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=16').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=18').catch(() => {});
   });
 }
 
