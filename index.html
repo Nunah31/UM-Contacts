@@ -800,6 +800,33 @@
   <div id="lists-container"></div>
 </div>
 
+<!-- SET REMINDER MODAL -->
+<div id="followup-modal-overlay" onclick="if(event.target===this)closeFollowUpModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:28px;width:420px;max-width:96vw;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.25);">
+    <h3 style="margin-bottom:20px;font-size:17px">🔔 קביעת תזכורת</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>📅 תאריך לחזרה</label>
+        <input type="date" id="fu-date" oninput="document.getElementById('fu-date-fmt').textContent=formatDate(this.value)">
+        <small id="fu-date-fmt" style="color:var(--muted);font-size:12px"></small>
+      </div>
+      <div class="form-group">
+        <label>⏰ שעה</label>
+        <input type="time" id="fu-time">
+      </div>
+    </div>
+    <div class="form-group" style="margin-top:12px">
+      <label>סיבה (אופציונלי)</label>
+      <input type="text" id="fu-reason" placeholder="לשאול אם קיבלו את המייל...">
+    </div>
+    <div class="modal-actions" style="margin-top:20px">
+      <button class="btn btn-outline" onclick="closeFollowUpModal()">ביטול</button>
+      <button class="btn btn-danger btn-sm" onclick="clearFollowUp()" style="margin-left:auto">🗑️ בטלי תזכורת</button>
+      <button class="btn btn-primary" onclick="saveFollowUp()">💾 שמירה</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADD CALL MODAL -->
 <div id="modal-overlay" onclick="closeModalIfOverlay(event)">
   <div id="modal">
@@ -807,7 +834,8 @@
     <div class="form-row">
       <div class="form-group">
         <label>תאריך השיחה</label>
-        <input type="date" id="call-date">
+        <input type="date" id="call-date" oninput="document.getElementById('call-date-fmt').textContent=formatDate(this.value)">
+        <small id="call-date-fmt" style="color:var(--muted);font-size:12px"></small>
       </div>
       <div class="form-group">
         <label>סטטוס</label>
@@ -1563,13 +1591,29 @@ function saveCall() {
 // =================== FOLLOW UP ===================
 
 function setFollowUp() {
-  const date = prompt('תאריך תזכורת (YYYY-MM-DD):', selectedContact.followUpDate || today());
-  if (!date) return;
-  const reason = prompt('סיבת החזרה (אופציונלי):', selectedContact.followUpReason || '');
+  const overlay = document.getElementById('followup-modal-overlay');
+  const fuDate = selectedContact.followUpDate || today();
+  document.getElementById('fu-date').value = fuDate;
+  document.getElementById('fu-date-fmt').textContent = formatDate(fuDate);
+  document.getElementById('fu-time').value = selectedContact.followUpTime || '';
+  document.getElementById('fu-reason').value = selectedContact.followUpReason || '';
+  overlay.style.display = 'flex';
+}
+
+function closeFollowUpModal() {
+  document.getElementById('followup-modal-overlay').style.display = 'none';
+}
+
+function saveFollowUp() {
+  const date = document.getElementById('fu-date').value;
+  if (!date) { showToast('נא לבחור תאריך'); return; }
   selectedContact.followUpDate = date;
-  selectedContact.followUpReason = reason;
+  selectedContact.followUpTime = document.getElementById('fu-time').value;
+  selectedContact.followUpReason = document.getElementById('fu-reason').value;
   saveToStorage();
+  closeFollowUpModal();
   showContactDetail();
+  updateBadges();
   showToast('תזכורת נקבעה ✓');
 }
 
