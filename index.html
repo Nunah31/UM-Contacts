@@ -1658,9 +1658,14 @@ function saveCall() {
 
 function setFollowUp() {
   const overlay = document.getElementById('followup-modal-overlay');
-  const fuDate = selectedContact.followUpDate || today();
+  const fuDate = selectedContact.followUpDate || '';
   document.getElementById('fu-date').value = fuDate;
-  document.getElementById('fu-date-fmt').textContent = formatDate(fuDate);
+  document.getElementById('fu-date-disp').textContent = fuDate ? formatDate(fuDate) : 'בחרי תאריך';
+  const fuTime = selectedContact.followUpTime || '';
+  document.getElementById('fu-time').value = fuTime;
+  const fuBtn = document.getElementById('fu-time-btn');
+  if (fuBtn) fuBtn.textContent = fuTime ? '⏰ ' + fuTime : 'בחרי שעה';
+  document.getElementById('fu-reason').value = selectedContact.followUpReason || '';
   document.getElementById('fu-time').value = selectedContact.followUpTime || '';
   document.getElementById('fu-reason').value = selectedContact.followUpReason || '';
   overlay.style.display = 'flex';
@@ -3376,7 +3381,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=20').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=21').catch(() => {});
   });
 }
 
