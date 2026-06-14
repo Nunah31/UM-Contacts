@@ -1555,9 +1555,13 @@ function showContactDetail() {
         <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
         <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(c.level || '—')}</div></div>
         <div class="info-item"><label>טלפון בית ספר</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
+        <div class="info-item"><label>מייל בי"ס</label><div class="value">${c.schoolEmail ? `<a href="mailto:${c.schoolEmail}">${escHtml(c.schoolEmail)}</a>` : '—'}</div></div>
         <div class="info-item"><label>איש קשר</label><div class="value">${escHtml(c.contactName || '—')}</div></div>
-        <div class="info-item"><label>נייד</label><div class="value">${phoneLinks(c.mobile)}</div></div>
-        <div class="info-item"><label>מייל</label><div class="value"><a href="mailto:${c.email}">${escHtml(c.email || '—')}</a></div></div>
+        <div class="info-item"><label>נייד איש קשר</label><div class="value">${phoneLinks(c.mobile)}</div></div>
+        <div class="info-item"><label>מייל איש קשר</label><div class="value">${c.email ? `<a href="mailto:${c.email}">${escHtml(c.email)}</a>` : '—'}</div></div>
+        <div class="info-item"><label>איש קשר 02</label><div class="value">${escHtml(c.contactName2 || '—')}</div></div>
+        <div class="info-item"><label>נייד איש קשר 02</label><div class="value">${phoneLinks(c.mobile2)}</div></div>
+        <div class="info-item"><label>מייל איש קשר 02</label><div class="value">${c.email2 ? `<a href="mailto:${c.email2}">${escHtml(c.email2)}</a>` : '—'}</div></div>
       </div>
     </div>
 
@@ -1826,11 +1830,21 @@ function editContact() {
     </div>
     <div class="form-row">
       <div class="form-group"><label>טלפון ביה"ס</label><input id="e-phone" value="${escHtml(c.phone)}"></div>
-      <div class="form-group"><label>נייד איש קשר</label><input id="e-mobile" value="${escHtml(c.mobile)}"></div>
+      <div class="form-group"><label>מייל בי"ס</label><input id="e-school-email" value="${escHtml(c.schoolEmail||'')}"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>שם איש קשר</label><input id="e-contact" value="${escHtml(c.contactName)}"></div>
-      <div class="form-group"><label>מייל</label><input id="e-email" value="${escHtml(c.email)}"></div>
+      <div class="form-group"><label>נייד איש קשר</label><input id="e-mobile" value="${escHtml(c.mobile)}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>מייל איש קשר</label><input id="e-email" value="${escHtml(c.email)}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>שם איש קשר 02</label><input id="e-contact2" value="${escHtml(c.contactName2||'')}"></div>
+      <div class="form-group"><label>נייד איש קשר 02</label><input id="e-mobile2" value="${escHtml(c.mobile2||'')}"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>מייל איש קשר 02</label><input id="e-email2" value="${escHtml(c.email2||'')}"></div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeEditModal()">ביטול</button>
@@ -1864,9 +1878,13 @@ function saveEdit() {
   c.level = document.getElementById('e-level').value;
   c.address = document.getElementById('e-address').value.trim();
   c.phone = document.getElementById('e-phone').value.trim();
+  c.schoolEmail = document.getElementById('e-school-email').value.trim();
   c.mobile = document.getElementById('e-mobile').value.trim();
   c.contactName = document.getElementById('e-contact').value.trim();
   c.email = document.getElementById('e-email').value.trim();
+  c.contactName2 = document.getElementById('e-contact2').value.trim();
+  c.mobile2 = document.getElementById('e-mobile2').value.trim();
+  c.email2 = document.getElementById('e-email2').value.trim();
   saveToStorage();
   closeEditModal();
   if (oldCity !== c.city) populateCityFilter();
@@ -3381,7 +3399,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=21').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=22').catch(() => {});
   });
 }
 
