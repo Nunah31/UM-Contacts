@@ -731,6 +731,7 @@
   <div class="sidebar-section" style="margin-top:auto; padding-top:20px;">
     <button class="sidebar-btn" onclick="exportData()">📤 ייצוא גיבוי</button>
     <button class="sidebar-btn" onclick="importBackup()">📥 שחזור מגיבוי</button>
+    <button class="sidebar-btn" onclick="openTokenSettings()" title="GitHub Token לגישה לנתונים">🔑 הגדרת Token</button>
   </div>
 </div>
 
@@ -1277,21 +1278,52 @@ function loadFromStorage() {
   return false;
 }
 
+// =================== PRIVATE REPO DATA FETCH ===================
+
+const DATA_REPO = 'Nunah31/UM-Contacts-data';
+const DATA_FILE = 'contacts_data.json';
+
+async function fetchContactsDataJSON() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) {
+    showToast('⚠️ לא הוגדר GitHub Token — הנתונים לא יטענו מהמאגר הפרטי');
+    return null;
+  }
+  const url = `https://api.github.com/repos/${DATA_REPO}/contents/${DATA_FILE}`;
+  const resp = await fetch(url, {
+    headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3.raw' }
+  });
+  if (!resp.ok) throw new Error('GitHub API: ' + resp.status + ' ' + resp.statusText);
+  return await resp.json();
+}
+
+function openTokenSettings() {
+  const cur = localStorage.getItem('gh_token') || '';
+  const val = prompt('הכנסי GitHub Personal Access Token (scope: repo):\n(הטוקן נשמר רק במכשיר זה)', cur ? '****' + cur.slice(-4) : '');
+  if (val === null) return;
+  if (val && val !== '****' + cur.slice(-4)) {
+    localStorage.setItem('gh_token', val.trim());
+    showToast('✓ טוקן נשמר');
+  }
+}
+
 // =================== INIT ===================
 
 async function init() {
   // returns promise so .then() works
   const loaded = loadFromStorage();
   if (!loaded) {
-    // Try to load from contacts_data.json
     try {
-      const resp = await fetch('contacts_data.json');
-      const raw = await resp.json();
-      allContacts = processRawData(raw);
-      saveToStorage();
+      const raw = await fetchContactsDataJSON();
+      if (raw) {
+        allContacts = processRawData(raw);
+        saveToStorage();
+      } else {
+        allContacts = [];
+      }
     } catch(e) {
       allContacts = [];
-      showToast('לא נמצא קובץ נתונים. ייבאי נתונים.');
+      showToast('שגיאה בטעינת נתונים: ' + e.message);
     }
   }
 
@@ -2270,10 +2302,10 @@ function importBackup() {
 }
 
 async function reloadFromJSON() {
-  if (!confirm('פעולה זו תטעין מחדש את כל הנתונים מהאקסל (contacts_data.json).\nשיחות ותזכורות שהוספת ידנית באפליקציה יישמרו.\nלהמשיך?')) return;
+  if (!confirm('פעולה זו תטעין מחדש את כל הנתונים מהאקסל.\nשיחות ותזכורות שהוספת ידנית באפליקציה יישמרו.\nלהמשיך?')) return;
   try {
-    const resp = await fetch('contacts_data.json?t=' + Date.now());
-    const raw = await resp.json();
+    const raw = await fetchContactsDataJSON();
+    if (!raw) return;
     const fresh = processRawData(raw);
     // Merge manual additions: keep conversations & followUpDate from existing localStorage
     const existing = {};
@@ -3399,7 +3431,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=22').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=23').catch(() => {});
   });
 }
 
