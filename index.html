@@ -2645,7 +2645,20 @@ let campaignSelectedIds = new Set();
 let editingCampaignIdx = null;
 let cpLevelFilter = '';
 
-function saveCampaigns() { localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns)); }
+function saveCampaigns() {
+  try {
+    localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
+  } catch(e) {
+    // Quota exceeded — retry without brochure images
+    const slim = campaigns.map(c => Object.assign({}, c, { brochureImage: null }));
+    try {
+      localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(slim));
+      showToast('⚠️ תמונת ברושור לא נשמרה — אחסון מלא');
+    } catch(e2) {
+      showToast('❌ שגיאה: לא ניתן לשמור — אחסון מלא');
+    }
+  }
+}
 
 function saveMsgTemplate() {
   const msg = document.getElementById('cp-message').value.trim();
@@ -2821,7 +2834,7 @@ function saveCampaign(openEmail) {
       }
     }
   } catch(err) {
-    alert('שגיאה בשמירה: ' + err.message);
+    showToast('❌ שגיאה בשמירה: ' + err.message);
   }
 }
 
