@@ -2807,7 +2807,19 @@ function saveCampaign(openEmail) {
     closeCampaignModal();
     renderCampaignsList();
     showToast('ההפצה נשמרה ✓');
-    if (openEmail) openSendModal(savedIdx);
+    if (openEmail) {
+      const camp = campaigns[savedIdx];
+      const recipients = (camp.recipients || []).map(id => allContacts.find(c => c.id === id)).filter(Boolean);
+      const withEmail = recipients.filter(c => c.email);
+      if (withEmail.length === 0) {
+        showToast('אין נמענים עם מייל — בחרי נמענים בהפצה');
+      } else {
+        const emailList = withEmail.map(c => c.email).join(',');
+        const msg = buildMessage(camp.message || '', camp);
+        const gmailUrl = 'https://mail.google.com/mail/?view=cm&bcc=' + encodeURIComponent(emailList) + '&su=' + encodeURIComponent(camp.name) + '&body=' + encodeURIComponent(msg);
+        window.open(gmailUrl, '_blank');
+      }
+    }
   } catch(err) {
     alert('שגיאה בשמירה: ' + err.message);
   }
