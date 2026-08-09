@@ -1239,8 +1239,8 @@ let activeStatus = '';
 
 const GROUPS = {
   schools:  { label: '🏫 בתי ספר',  key: 'um_contacts_v4',  file: 'contacts_data.json',  color: '#1a3a5c', processRaw: true },
-  matnasim: { label: '🏛️ מתנ"סים', key: 'um_matnasim_v1',  file: 'matnasim_data.json',  color: '#5c3a1a', processRaw: false },
-  gimlaaim: { label: '👴 גימלאים',  key: 'um_gimlaaim_v1', file: 'gimlaaim_data.json',  color: '#1a5c3a', processRaw: false },
+  matnasim: { label: '🏛️ מתנ"סים', key: 'um_matnasim_v1',  file: 'matnasim_data.json',  color: '#7a3355', processRaw: false },
+  gimlaaim: { label: '👴 גימלאים',  key: 'um_gimlaaim_v1', file: 'gimlaaim_data.json',  color: '#4a2a6e', processRaw: false },
 };
 let activeGroup = localStorage.getItem('um_active_group') || 'schools';
 function currentStorageKey() { return GROUPS[activeGroup].key; }
@@ -3519,7 +3519,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=25').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=26').catch(() => {});
   });
 }
 
