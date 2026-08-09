@@ -1375,8 +1375,9 @@ async function switchGroup(group) {
   checkReminders();
   renderStats();
   detectDuplicates();
-  // Clear detail panel
-  document.getElementById('detail-panel').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:15px">בחרי איש קשר מהרשימה</div>';
+  // Reset detail panel to empty state
+  document.querySelectorAll('#detail-panel .view').forEach(v => v.classList.remove('active'));
+  document.getElementById('empty-state').style.display = 'flex';
   // Switch to contacts view
   setView('contacts', document.querySelector('.sidebar-btn[onclick*="contacts"]'));
   showToast('✓ ' + GROUPS[group].label);
@@ -3518,7 +3519,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=24').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=25').catch(() => {});
   });
 }
 
