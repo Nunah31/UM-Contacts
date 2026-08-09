@@ -1144,7 +1144,8 @@
 
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeCampaignModal()">ביטול</button>
-      <button class="btn btn-primary" onclick="saveCampaign()">💾 שמירה</button>
+      <button class="btn btn-primary" onclick="saveCampaign(false)">💾 שמירה</button>
+      <button class="btn btn-success" onclick="saveCampaign(true)">💾 שמור ופתח מייל ▶</button>
     </div>
   </div>
 </div>
@@ -2785,7 +2786,7 @@ function toggleRecipient(id, checked) {
 
 function filterCampaignRecipients() { renderCampaignRecipients(); }
 
-function saveCampaign() {
+function saveCampaign(openEmail) {
   const name = document.getElementById('cp-name').value.trim();
   if (!name) { showToast('נא להזין שם הפצה'); return; }
   const campaign = {
@@ -2798,12 +2799,14 @@ function saveCampaign() {
     recipients: [...campaignSelectedIds],
     createdAt: new Date().toISOString()
   };
+  const savedIdx = editingCampaignIdx !== null ? editingCampaignIdx : 0;
   if (editingCampaignIdx !== null) campaigns[editingCampaignIdx] = campaign;
   else campaigns.unshift(campaign);
   saveCampaigns();
   closeCampaignModal();
   renderCampaignsList();
   showToast('ההפצה נשמרה ✓');
+  if (openEmail) openSendModal(savedIdx);
 }
 
 function renderCampaignsList() {
@@ -3550,7 +3553,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=29').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=30').catch(() => {});
   });
 }
 
