@@ -2787,26 +2787,30 @@ function toggleRecipient(id, checked) {
 function filterCampaignRecipients() { renderCampaignRecipients(); }
 
 function saveCampaign(openEmail) {
-  const name = document.getElementById('cp-name').value.trim();
-  if (!name) { showToast('נא להזין שם הפצה'); return; }
-  const campaign = {
-    id: editingCampaignIdx !== null ? campaigns[editingCampaignIdx].id : 'camp-' + Date.now(),
-    name,
-    brochure: document.getElementById('cp-brochure').value.trim(),
-    brochureImage: cpBrochureBase64 || null,
-    video: document.getElementById('cp-video').value.trim(),
-    message: document.getElementById('cp-message').value.trim(),
-    recipients: [...campaignSelectedIds],
-    createdAt: new Date().toISOString()
-  };
-  const savedIdx = editingCampaignIdx !== null ? editingCampaignIdx : 0;
-  if (editingCampaignIdx !== null) campaigns[editingCampaignIdx] = campaign;
-  else campaigns.unshift(campaign);
-  saveCampaigns();
-  closeCampaignModal();
-  renderCampaignsList();
-  showToast('ההפצה נשמרה ✓');
-  if (openEmail) openSendModal(savedIdx);
+  try {
+    const name = document.getElementById('cp-name').value.trim();
+    if (!name) { showToast('נא להזין שם הפצה'); return; }
+    const campaign = {
+      id: editingCampaignIdx !== null ? campaigns[editingCampaignIdx].id : 'camp-' + Date.now(),
+      name,
+      brochure: document.getElementById('cp-brochure').value.trim(),
+      brochureImage: cpBrochureBase64 || null,
+      video: document.getElementById('cp-video').value.trim(),
+      message: document.getElementById('cp-message').value.trim(),
+      recipients: [...campaignSelectedIds],
+      createdAt: new Date().toISOString()
+    };
+    const savedIdx = editingCampaignIdx !== null ? editingCampaignIdx : 0;
+    if (editingCampaignIdx !== null) campaigns[editingCampaignIdx] = campaign;
+    else campaigns.unshift(campaign);
+    saveCampaigns();
+    closeCampaignModal();
+    renderCampaignsList();
+    showToast('ההפצה נשמרה ✓');
+    if (openEmail) openSendModal(savedIdx);
+  } catch(err) {
+    alert('שגיאה בשמירה: ' + err.message);
+  }
 }
 
 function renderCampaignsList() {
