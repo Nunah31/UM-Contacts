@@ -2829,8 +2829,8 @@ function saveCampaign(openEmail) {
       } else {
         const emailList = withEmail.map(c => c.email).join(',');
         const msg = buildMessage(camp.message || '', camp);
-        const gmailUrl = 'https://mail.google.com/mail/?view=cm&bcc=' + encodeURIComponent(emailList) + '&su=' + encodeURIComponent(camp.name) + '&body=' + encodeURIComponent(msg);
-        window.open(gmailUrl, '_blank');
+        const mailtoUrl = 'mailto:?bcc=' + encodeURIComponent(emailList) + '&subject=' + encodeURIComponent(camp.name) + '&body=' + encodeURIComponent(msg);
+        window.location.href = mailtoUrl;
       }
     }
   } catch(err) {
@@ -2921,7 +2921,7 @@ function openSendModal(idx) {
   document.getElementById('send-modal-desc').textContent = withEmail.length + ' עם מייל · ' + withMobile.length + ' עם נייד';
 
   const emailList = withEmail.map(c => c.email).join(',');
-  const gmailUrl = `https://mail.google.com/mail/?view=cm&bcc=${encodeURIComponent(emailList)}&su=${subject}&body=${body}`;
+  const gmailUrl = `mailto:?bcc=${encodeURIComponent(emailList)}&subject=${subject}&body=${body}`;
 
   const actions = [];
 
@@ -2939,7 +2939,7 @@ function openSendModal(idx) {
           <button class="btn btn-primary btn-sm" onclick="copyBrochureFromCampaign(${idx})">📋 שלב 1: העתק ברושור</button>
         </div>` : ''}
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <a href="${gmailUrl}" target="_blank" class="btn btn-primary btn-sm">${hasBrochureImg ? 'שלב 2: ' : ''}פתח Gmail</a>
+          <a href="${gmailUrl}" target="_blank" class="btn btn-primary btn-sm">${hasBrochureImg ? 'שלב 2: ' : ''}פתח Outlook</a>
           <button class="btn btn-outline btn-sm" onclick="copyToClipboard('${emailList.replace(/'/g,"\\'")}', 'רשימת מיילים הועתקה')">📋 העתק מיילים</button>
         </div>
       </div>`);
@@ -3097,7 +3097,7 @@ function renderMailingLists() {
       </div>
       <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
         ${withEmail ? `<button class="btn btn-outline btn-sm" onclick="copyToClipboard('${emails.replace(/'/g,"\\'")}','מיילים הועתקו ✓')">📋 העתק מיילים (${withEmail})</button>
-        <a href="https://mail.google.com/mail/?view=cm&bcc=${encodeURIComponent(emails)}" target="_blank" class="btn btn-primary btn-sm">📧 פתח Gmail</a>` : ''}
+        <a href="mailto:?bcc=${encodeURIComponent(emails)}" class="btn btn-primary btn-sm">📧 פתח Outlook</a>` : ''}
         ${withMobile ? `<button class="btn btn-outline btn-sm" onclick="copyToClipboard(\`${phones.replace(/`/g,'\\`')}\`,'טלפונים הועתקו ✓')">📋 העתק טלפונים (${withMobile})</button>` : ''}
       </div>
     </div>`;
