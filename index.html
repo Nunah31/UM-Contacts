@@ -1240,6 +1240,7 @@ let selectedContact = null;
 let currentView = 'contacts';
 let activeLevel = '';
 let activeStatus = '';
+let activeCampaignFilter = '';
 
 const GROUPS = {
   schools:  { label: '🏫 בתי ספר',  key: 'um_contacts_v4',  file: 'contacts_data.json',  color: '#1a3a5c', processRaw: true },
@@ -1488,6 +1489,10 @@ function applyFilters() {
     } else if (activeStatus === 'performed') {
       if (!c.performedBefore) return false;
     }
+    if (activeCampaignFilter) {
+      const camp = campaigns.find(cp => cp.id === activeCampaignFilter);
+      if (!camp || !(camp.recipients || []).includes(c.id)) return false;
+    }
     if (search) {
       const haystack = (c.school + ' ' + c.city + ' ' + c.contactName + ' ' + (c.mobile||'') + ' ' + (c.phone||'')).toLowerCase();
       if (!haystack.includes(search)) return false;
@@ -1547,6 +1552,21 @@ function populateCityFilter() {
 function renderList() {
   const list = document.getElementById('contact-list');
   document.getElementById('list-count').textContent = filteredContacts.length + ' קשרים';
+
+  // Banner when campaign filter is active
+  let banner = document.getElementById('campaign-filter-banner');
+  if (activeCampaignFilter) {
+    const camp = campaigns.find(c => c.id === activeCampaignFilter);
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'campaign-filter-banner';
+      banner.style.cssText = 'background:#d4edda;color:#155724;padding:8px 12px;font-size:13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #b2dfdb';
+      list.parentNode.insertBefore(banner, list);
+    }
+    banner.innerHTML = `<span>🔍 מסנן: <strong>${escHtml(camp ? camp.name : '')}</strong> — ${filteredContacts.length} קשרים</span><button class="btn btn-outline btn-sm" onclick="clearCampaignFilter();renderList()" style="font-size:11px;padding:2px 8px">✕ נקה סינון</button>`;
+  } else if (banner) {
+    banner.remove();
+  }
 
   if (filteredContacts.length === 0) {
     list.innerHTML = '<div id="no-results">לא נמצאו תוצאות</div>';
@@ -1664,6 +1684,19 @@ function showContactDetail() {
       <button class="btn btn-outline" onclick="openIntroEmailModal()" style="background:#e8f4fd;border-color:#2c6fad;color:#1a4a7a">📧 מייל היכרות</button>
       <button class="btn btn-danger btn-sm" onclick="deleteCurrentContact()" title="מחיקת קשר">🗑️ מחיקה</button>
     </div>
+
+    ${(() => {
+      const sentToMe = campaigns.filter(camp => camp.sentAt && (camp.recipients||[]).includes(c.id));
+      if (!sentToMe.length) return '';
+      return `<div class="card" style="background:#f0fff4;border:1px solid #b2dfdb">
+        <h3 style="color:#155724;margin-bottom:10px">📧 הפצות שנשלחו</h3>
+        ${sentToMe.map(camp => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid #c3e6cb">
+            <span style="font-weight:600">${escHtml(camp.name)}</span>
+            <span style="font-size:12px;color:#155724">✅ ${formatDateHe(camp.sentAt)}</span>
+          </div>`).join('')}
+      </div>`;
+    })()}
 
     <div class="card">
       <h3>פרטי קשר</h3>
@@ -2865,6 +2898,10 @@ function renderCampaignsList() {
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="openSendModal(${idx})">📤 שליחה</button>
+          ${camp.sentAt
+            ? `<span style="background:#d4edda;color:#155724;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px">✅ נשלח ${formatDateHe(camp.sentAt)}</span>
+               <button class="btn btn-outline btn-sm" onclick="filterByCampaign('${camp.id}')">🔍 סנן קשרים</button>`
+            : `<button class="btn btn-success btn-sm" onclick="markCampaignSent(${idx})">✅ סמני כנשלח</button>`}
           <button class="btn btn-outline btn-sm" onclick="editCampaign(${idx})">✏️ עריכה</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCampaign(${idx})">🗑️</button>
         </div>
@@ -2900,6 +2937,26 @@ function deleteCampaign(idx) {
   saveCampaigns();
   renderCampaignsList();
   showToast('ההפצה נמחקה ✓');
+}
+
+function markCampaignSent(idx) {
+  campaigns[idx].sentAt = new Date().toISOString();
+  saveCampaigns();
+  renderCampaignsList();
+  showToast('✅ ההפצה סומנה כנשלחה!');
+}
+
+function filterByCampaign(campaignId) {
+  activeCampaignFilter = campaignId;
+  const camp = campaigns.find(c => c.id === campaignId);
+  setView('contacts', document.querySelector('.sidebar-btn[onclick*="contacts"]'));
+  applyFilters();
+  showToast('🔍 מסנן לפי הפצה: ' + (camp ? camp.name : ''));
+}
+
+function clearCampaignFilter() {
+  activeCampaignFilter = '';
+  applyFilters();
 }
 
 function buildMessage(template, camp) {
