@@ -1102,8 +1102,11 @@
       </div>
     </div>
     <div class="form-group">
-      <label>📝 הודעה לשליחה</label>
-      <textarea id="cp-message" style="min-height:120px" placeholder="שלום,&#10;אנחנו שמחים להציג את המופע שלנו לשנת הלימודים 2026...&#10;&#10;לברושור: {ברושור}&#10;לצפייה במופע: {סרטון}"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="margin:0">📝 הודעה לשליחה</label>
+        <button type="button" class="btn btn-outline btn-sm" onclick="saveMsgTemplate()" style="font-size:12px">💾 שמרי כתבנית</button>
+      </div>
+      <textarea id="cp-message" style="min-height:140px" placeholder="שלום,&#10;אנחנו שמחים להציג את המופע שלנו לשנת הלימודים 2026...&#10;&#10;לברושור: {ברושור}&#10;לצפייה במופע: {סרטון}"></textarea>
       <div style="font-size:12px;color:var(--muted);margin-top:4px">השתמשי ב-{ברושור} ו-{סרטון} כדי להכניס את הקישורים אוטומטית</div>
     </div>
 
@@ -2623,6 +2626,13 @@ let cpLevelFilter = '';
 
 function saveCampaigns() { localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns)); }
 
+function saveMsgTemplate() {
+  const msg = document.getElementById('cp-message').value.trim();
+  if (!msg) { showToast('ההודעה ריקה'); return; }
+  localStorage.setItem('um_msg_template', msg);
+  showToast('✓ כתבנית נשמרה — תופיע אוטומטית בהפצה חדשה');
+}
+
 // ---- Brochure image ----
 let cpBrochureBase64 = null;
 
@@ -2688,7 +2698,8 @@ function openNewCampaign() {
   editingCampaignIdx = null;
   cpLevelFilter = '';
   document.getElementById('campaign-modal-title').textContent = '📢 הפצה חדשה';
-  ['cp-name','cp-brochure','cp-video','cp-message'].forEach(id => document.getElementById(id).value = '');
+  ['cp-name','cp-brochure','cp-video'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('cp-message').value = localStorage.getItem('um_msg_template') || '';
   cpBrochureBase64 = null;
   document.getElementById('cp-brochure-file').value = '';
   document.getElementById('cp-brochure-preview').style.display = 'none';
@@ -3519,7 +3530,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=26').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=27').catch(() => {});
   });
 }
 
