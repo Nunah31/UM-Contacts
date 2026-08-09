@@ -107,6 +107,23 @@
     background: var(--primary); border-color: var(--primary); color: #fff;
   }
 
+  /* GROUP SWITCHER */
+  .group-switcher {
+    display: flex; gap: 4px; padding: 10px 16px 6px;
+  }
+  .group-btn {
+    flex: 1; padding: 6px 4px; font-size: 11px; font-weight: 600;
+    border: 1px solid rgba(255,255,255,0.25); border-radius: 8px;
+    background: rgba(255,255,255,0.08); color: #cdd5e0;
+    cursor: pointer; transition: all .2s; text-align: center; white-space: nowrap;
+  }
+  .group-btn.active {
+    background: rgba(255,255,255,0.22); color: #fff;
+    border-color: rgba(255,255,255,0.5);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .group-btn:hover:not(.active) { background: rgba(255,255,255,0.14); }
+
   /* MAIN AREA */
   #main {
     flex: 1;
@@ -682,7 +699,13 @@
 
 <!-- SIDEBAR -->
 <div id="sidebar">
-  <h1>UM-Contacts<span>בתי ספר</span></h1>
+  <h1>UM-Contacts</h1>
+
+  <div class="group-switcher">
+    <button class="group-btn active" data-group="schools" onclick="switchGroup('schools')">🏫 בתי ספר</button>
+    <button class="group-btn" data-group="matnasim" onclick="switchGroup('matnasim')">🏛️ מתנ"סים</button>
+    <button class="group-btn" data-group="gimlaaim" onclick="switchGroup('gimlaaim')">👴 גימלאים</button>
+  </div>
 
   <div class="sidebar-section" style="position:relative">
     <input type="text" id="search-box" placeholder="🔍 חיפוש בית ספר / עיר / איש קשר..." oninput="applyFilters();toggleClearBtn()" style="padding-left:28px">
@@ -1214,13 +1237,21 @@ let currentView = 'contacts';
 let activeLevel = '';
 let activeStatus = '';
 
-const STORAGE_KEY = 'um_contacts_v4';
+const GROUPS = {
+  schools:  { label: '🏫 בתי ספר',  key: 'um_contacts_v4',  file: 'contacts_data.json',  color: '#1a3a5c', processRaw: true },
+  matnasim: { label: '🏛️ מתנ"סים', key: 'um_matnasim_v1',  file: 'matnasim_data.json',  color: '#5c3a1a', processRaw: false },
+  gimlaaim: { label: '👴 גימלאים',  key: 'um_gimlaaim_v1', file: 'gimlaaim_data.json',  color: '#1a5c3a', processRaw: false },
+};
+let activeGroup = localStorage.getItem('um_active_group') || 'schools';
+function currentStorageKey() { return GROUPS[activeGroup].key; }
+
+const STORAGE_KEY = 'um_contacts_v4'; // kept for legacy migration only
 
 function saveToStorage() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allContacts));
-    // Auto-backup: save timestamped copy every time data changes
-    const backupKey = 'um_contacts_backup';
+    const key = currentStorageKey();
+    localStorage.setItem(key, JSON.stringify(allContacts));
+    const backupKey = 'um_backup_' + activeGroup;
     const existing = JSON.parse(localStorage.getItem(backupKey) || '{}');
     existing.data = JSON.stringify(allContacts);
     existing.savedAt = new Date().toISOString();
@@ -1231,8 +1262,8 @@ function saveToStorage() {
 }
 
 function loadFromStorage() {
-  // Try main storage key
-  const saved = localStorage.getItem(STORAGE_KEY);
+  const key = currentStorageKey();
+  const saved = localStorage.getItem(key);
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
@@ -1243,23 +1274,25 @@ function loadFromStorage() {
     } catch(e) {}
   }
 
-  // Try older keys
-  for (const oldKey of ['um_contacts_v4','um_contacts_v3','um_contacts_v2']) {
-    const old = localStorage.getItem(oldKey);
-    if (old) {
-      try {
-        const parsed = JSON.parse(old);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          allContacts = parsed;
-          localStorage.setItem(STORAGE_KEY, old); // migrate to current key
-          return true;
-        }
-      } catch(e) {}
+  // For schools only: try older keys for migration
+  if (activeGroup === 'schools') {
+    for (const oldKey of ['um_contacts_v4','um_contacts_v3','um_contacts_v2']) {
+      const old = localStorage.getItem(oldKey);
+      if (old) {
+        try {
+          const parsed = JSON.parse(old);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            allContacts = parsed;
+            localStorage.setItem(key, old);
+            return true;
+          }
+        } catch(e) {}
+      }
     }
   }
 
-  // Try auto-backup
-  const backup = localStorage.getItem('um_contacts_backup');
+  // Try group backup
+  const backup = localStorage.getItem('um_backup_' + activeGroup);
   if (backup) {
     try {
       const b = JSON.parse(backup);
@@ -1267,8 +1300,7 @@ function loadFromStorage() {
         const parsed = JSON.parse(b.data);
         if (Array.isArray(parsed) && parsed.length > 0) {
           allContacts = parsed;
-          localStorage.setItem(STORAGE_KEY, b.data);
-          console.log('Restored from backup:', parsed.length, 'contacts');
+          localStorage.setItem(key, b.data);
           return true;
         }
       }
@@ -1286,10 +1318,11 @@ const DATA_FILE = 'contacts_data.json';
 async function fetchContactsDataJSON() {
   const token = localStorage.getItem('gh_token');
   if (!token) {
-    showToast('⚠️ לא הוגדר GitHub Token — הנתונים לא יטענו מהמאגר הפרטי');
+    showToast('⚠️ לא הוגדר GitHub Token — לחצי על 🔑 הגדרת Token');
     return null;
   }
-  const url = `https://api.github.com/repos/${DATA_REPO}/contents/${DATA_FILE}`;
+  const file = GROUPS[activeGroup].file;
+  const url = `https://api.github.com/repos/${DATA_REPO}/contents/${file}`;
   const resp = await fetch(url, {
     headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3.raw' }
   });
@@ -1307,16 +1340,65 @@ function openTokenSettings() {
   }
 }
 
-// =================== INIT ===================
+// =================== GROUP SWITCHING ===================
 
-async function init() {
-  // returns promise so .then() works
+async function switchGroup(group) {
+  if (group === activeGroup) return;
+  activeGroup = group;
+  localStorage.setItem('um_active_group', group);
+  selectedContact = null;
+  allContacts = [];
+
+  // Update group button styles
+  document.querySelectorAll('.group-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.group === group);
+  });
+  // Update sidebar color accent
+  document.getElementById('sidebar').style.background = GROUPS[group].color;
+
   const loaded = loadFromStorage();
   if (!loaded) {
     try {
       const raw = await fetchContactsDataJSON();
       if (raw) {
-        allContacts = processRawData(raw);
+        allContacts = GROUPS[group].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+        saveToStorage();
+      }
+    } catch(e) {
+      showToast('שגיאה בטעינה: ' + e.message);
+    }
+  }
+
+  populateCityFilter();
+  updateBadges();
+  applyFilters();
+  checkReminders();
+  renderStats();
+  detectDuplicates();
+  // Clear detail panel
+  document.getElementById('detail-panel').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);font-size:15px">בחרי איש קשר מהרשימה</div>';
+  // Switch to contacts view
+  setView('contacts', document.querySelector('.sidebar-btn[onclick*="contacts"]'));
+  showToast('✓ ' + GROUPS[group].label);
+}
+
+// =================== INIT ===================
+
+async function init() {
+  // Set sidebar color for active group
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.style.background = GROUPS[activeGroup].color;
+  // Mark active group button
+  document.querySelectorAll('.group-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.group === activeGroup);
+  });
+
+  const loaded = loadFromStorage();
+  if (!loaded) {
+    try {
+      const raw = await fetchContactsDataJSON();
+      if (raw) {
+        allContacts = GROUPS[activeGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
         saveToStorage();
       } else {
         allContacts = [];
@@ -1333,7 +1415,6 @@ async function init() {
   checkReminders();
   renderStats();
   detectDuplicates();
-  // Request notification permission & check due reminders
   requestNotificationPermission().then(granted => {
     if (granted) checkAndNotifyDueReminders();
   });
@@ -1582,18 +1663,24 @@ function showContactDetail() {
     <div class="card">
       <h3>פרטי קשר</h3>
       <div class="info-grid">
-        <div class="info-item"><label>שם בית הספר</label><div class="value">${escHtml(c.school)}</div></div>
+        <div class="info-item"><label>${activeGroup === 'schools' ? 'שם בית הספר' : activeGroup === 'matnasim' ? 'שם מתנ"ס' : 'שם המוסד'}</label><div class="value">${escHtml(c.school || c.city || '—')}</div></div>
         <div class="info-item"><label>עיר</label><div class="value">${escHtml(c.city)}</div></div>
+        ${activeGroup === 'schools' ? `
         <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
-        <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(c.level || '—')}</div></div>
-        <div class="info-item"><label>טלפון בית ספר</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
-        <div class="info-item"><label>מייל בי"ס</label><div class="value">${c.schoolEmail ? `<a href="mailto:${c.schoolEmail}">${escHtml(c.schoolEmail)}</a>` : '—'}</div></div>
+        <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(c.level || '—')}</div></div>` : ''}
+        <div class="info-item"><label>טלפון</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
+        ${c.phone2 ? `<div class="info-item"><label>טלפון 2</label><div class="value"><a href="tel:${c.phone2}">${escHtml(c.phone2)}</a></div></div>` : ''}
+        ${activeGroup === 'schools' ? `<div class="info-item"><label>מייל בי"ס</label><div class="value">${c.schoolEmail ? `<a href="mailto:${c.schoolEmail}">${escHtml(c.schoolEmail)}</a>` : '—'}</div></div>` : ''}
         <div class="info-item"><label>איש קשר</label><div class="value">${escHtml(c.contactName || '—')}</div></div>
         <div class="info-item"><label>נייד איש קשר</label><div class="value">${phoneLinks(c.mobile)}</div></div>
-        <div class="info-item"><label>מייל איש קשר</label><div class="value">${c.email ? `<a href="mailto:${c.email}">${escHtml(c.email)}</a>` : '—'}</div></div>
+        <div class="info-item"><label>מייל</label><div class="value">${c.email ? `<a href="mailto:${c.email}">${escHtml(c.email)}</a>` : '—'}</div></div>
+        ${activeGroup === 'schools' ? `
         <div class="info-item"><label>איש קשר 02</label><div class="value">${escHtml(c.contactName2 || '—')}</div></div>
         <div class="info-item"><label>נייד איש קשר 02</label><div class="value">${phoneLinks(c.mobile2)}</div></div>
-        <div class="info-item"><label>מייל איש קשר 02</label><div class="value">${c.email2 ? `<a href="mailto:${c.email2}">${escHtml(c.email2)}</a>` : '—'}</div></div>
+        <div class="info-item"><label>מייל איש קשר 02</label><div class="value">${c.email2 ? `<a href="mailto:${c.email2}">${escHtml(c.email2)}</a>` : '—'}</div></div>` : ''}
+        ${c.interest ? `<div class="info-item"><label>תחום עניין</label><div class="value">${escHtml(c.interest)}</div></div>` : ''}
+        ${c.lastContactDate ? `<div class="info-item"><label>תאריך קשר אחרון</label><div class="value">${escHtml(c.lastContactDate)}</div></div>` : ''}
+        ${c.notes && !c.conversations?.length ? `<div class="info-item" style="grid-column:1/-1"><label>הערות</label><div class="value" style="white-space:pre-wrap">${escHtml(c.notes)}</div></div>` : ''}
       </div>
     </div>
 
@@ -2302,21 +2389,21 @@ function importBackup() {
 }
 
 async function reloadFromJSON() {
-  if (!confirm('פעולה זו תטעין מחדש את כל הנתונים מהאקסל.\nשיחות ותזכורות שהוספת ידנית באפליקציה יישמרו.\nלהמשיך?')) return;
+  if (!confirm('פעולה זו תטעין מחדש את כל הנתונים מהמאגר.\nשיחות ותזכורות שהוספת ידנית יישמרו.\nלהמשיך?')) return;
   try {
     const raw = await fetchContactsDataJSON();
     if (!raw) return;
-    const fresh = processRawData(raw);
-    // Merge manual additions: keep conversations & followUpDate from existing localStorage
+    const isSchools = GROUPS[activeGroup].processRaw;
+    const fresh = isSchools ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+    // Merge manual additions (conversations, follow-ups) from existing data
     const existing = {};
     allContacts.forEach(c => { existing[c.id] = c; });
     const merged = fresh.map(c => {
       const old = existing[c.id];
       if (old) {
-        // Keep manual conversations added in app, merge with imported
-        const importedDates = new Set(c.conversations.map(x => x.date + x.notes.slice(0,20)));
-        const manualConvos = (old.conversations || []).filter(x => !importedDates.has(x.date + x.notes.slice(0,20)));
-        return { ...c, conversations: [...c.conversations, ...manualConvos].sort((a,b) => (b.date||'').localeCompare(a.date||'')), followUpDate: old.followUpDate || c.followUpDate, followUpReason: old.followUpReason || c.followUpReason, contactName: old.contactName || c.contactName, mobile: old.mobile || c.mobile };
+        const importedDates = new Set((c.conversations||[]).map(x => x.date + (x.notes||'').slice(0,20)));
+        const manualConvos = (old.conversations || []).filter(x => !importedDates.has(x.date + (x.notes||'').slice(0,20)));
+        return { ...c, conversations: [...(c.conversations||[]), ...manualConvos].sort((a,b) => (b.date||'').localeCompare(a.date||'')), followUpDate: old.followUpDate || c.followUpDate, followUpReason: old.followUpReason || c.followUpReason, contactName: old.contactName || c.contactName, mobile: old.mobile || c.mobile };
       }
       return c;
     });
@@ -2326,7 +2413,7 @@ async function reloadFromJSON() {
     detectDuplicates();
     updateBadges();
     renderStats();
-    showToast('✓ נטענו ' + allContacts.length + ' קשרים מהאקסל');
+    showToast('✓ נטענו ' + allContacts.length + ' קשרים');
   } catch(e) {
     showToast('שגיאה בטעינה: ' + e.message);
   }
@@ -3431,7 +3518,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=23').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=24').catch(() => {});
   });
 }
 
