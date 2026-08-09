@@ -1372,7 +1372,6 @@ async function switchGroup(group) {
     }
   }
 
-  loadCampaigns();
   populateCityFilter();
   updateBadges();
   applyFilters();
@@ -2619,15 +2618,25 @@ document.addEventListener('keydown', e => {
 
 // =================== CAMPAIGNS ===================
 
-const CAMPAIGNS_KEY = 'um_campaigns_v1'; // legacy key (schools)
-function campaignsKey() { return 'um_campaigns_' + activeGroup; }
+const CAMPAIGNS_KEY = 'um_campaigns_v1';
 function loadCampaigns() {
-  // Migrate old key to schools key on first run
-  const legacyData = localStorage.getItem('um_campaigns_v1');
-  if (legacyData && !localStorage.getItem('um_campaigns_schools')) {
-    localStorage.setItem('um_campaigns_schools', legacyData);
-  }
-  campaigns = JSON.parse(localStorage.getItem(campaignsKey()) || '[]');
+  // Merge all per-group keys back into the global key (cleanup from previous version)
+  ['schools','matnasim','gimlaaim'].forEach(g => {
+    const perGroup = localStorage.getItem('um_campaigns_' + g);
+    if (perGroup) {
+      try {
+        const items = JSON.parse(perGroup);
+        if (items.length > 0) {
+          const existing = JSON.parse(localStorage.getItem(CAMPAIGNS_KEY) || '[]');
+          const existingIds = new Set(existing.map(c => c.id));
+          const merged = [...existing, ...items.filter(c => !existingIds.has(c.id))];
+          localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(merged));
+        }
+      } catch(e) {}
+      localStorage.removeItem('um_campaigns_' + g);
+    }
+  });
+  campaigns = JSON.parse(localStorage.getItem(CAMPAIGNS_KEY) || '[]');
 }
 let campaigns = [];
 loadCampaigns();
@@ -2635,7 +2644,7 @@ let campaignSelectedIds = new Set();
 let editingCampaignIdx = null;
 let cpLevelFilter = '';
 
-function saveCampaigns() { localStorage.setItem(campaignsKey(), JSON.stringify(campaigns)); }
+function saveCampaigns() { localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns)); }
 
 function saveMsgTemplate() {
   const msg = document.getElementById('cp-message').value.trim();
@@ -3541,7 +3550,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=28').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=29').catch(() => {});
   });
 }
 
