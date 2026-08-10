@@ -2142,6 +2142,10 @@ function setView(view, btn) {
   document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
 
+  // Clear search when navigating away from contacts view
+  const sb = document.getElementById('search-box');
+  if (sb && sb.value) { sb.value = ''; applyFilters(); }
+
   document.getElementById('empty-state').style.display = 'none';
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
 
@@ -2221,19 +2225,54 @@ function renderReminders() {
       else { badge = `בעוד ${r.daysLeft} ימים`; }
       const timeStr = r.reminderTime ? ' · ⏰ ' + r.reminderTime : '';
       const clearArg = r._reminderType === 'conv' ? `'${r.id}','conv',${r._convIdx}` : `'${r.id}','contact'`;
+      const reschedArg = r._reminderType === 'conv' ? `'${r.id}','conv',${r._convIdx}` : `'${r.id}','contact'`;
+      const rowId = `rr-${r.id}-${r._reminderType}-${r._convIdx ?? 'c'}`;
       return `<div class="conv-entry">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
           <strong style="font-size:15px;cursor:pointer;flex:1;min-width:0" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school)}</strong>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
             <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
+            <button class="btn btn-outline btn-sm" onclick="toggleReschedule('${rowId}')" style="font-size:12px">📅 שנה תאריך</button>
             <button class="btn btn-outline btn-sm" onclick="clearReminderInList(${clearArg})" style="font-size:12px;white-space:nowrap">✓ נוקה</button>
           </div>
         </div>
         <div style="font-size:13px;color:var(--muted);margin-top:4px;word-break:break-word">${escHtml(r.city)} · 📅 ${formatDate(r.reminderDate)}${timeStr}</div>
         ${r.reminderReason ? `<div style="font-size:13px;margin-top:4px;word-break:break-word">${escHtml(r.reminderReason)}</div>` : ''}
+        <div id="${rowId}" style="display:none;margin-top:8px;background:#f0f4ff;border-radius:8px;padding:10px;display:none;gap:8px;align-items:center;flex-wrap:wrap">
+          <input type="date" id="${rowId}-date" value="${r.reminderDate}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+          <input type="time" id="${rowId}-time" value="${r.reminderTime||''}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+          <button class="btn btn-primary btn-sm" onclick="applyReschedule('${rowId}',${reschedArg})">✓ עדכן</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleReschedule('${rowId}')">ביטול</button>
+        </div>
       </div>`;
     }).join('');
   document.getElementById('reminders-list').innerHTML = html;
+}
+
+function toggleReschedule(rowId) {
+  const el = document.getElementById(rowId);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+function applyReschedule(rowId, contactId, type, convIdx) {
+  const newDate = document.getElementById(rowId + '-date').value;
+  const newTime = document.getElementById(rowId + '-time').value;
+  if (!newDate) { showToast('נא לבחור תאריך'); return; }
+  const c = allContacts.find(x => x.id === contactId);
+  if (!c) return;
+  if (type === 'conv' && convIdx !== undefined) {
+    if (c.conversations && c.conversations[convIdx]) {
+      c.conversations[convIdx].followUpDate = newDate;
+      c.conversations[convIdx].followUpTime = newTime || null;
+    }
+  } else {
+    c.followUpDate = newDate;
+    c.followUpTime = newTime || null;
+  }
+  saveToStorage();
+  renderReminders();
+  showToast('✅ התזכורת עודכנה ל-' + formatDate(newDate));
 }
 
 function checkReminders() {
@@ -3371,7 +3410,12 @@ function openIntroEmailModal() {
   document.getElementById('ie-video1').value = 'https://youtu.be/AXWOQLN3wY8?si=E4RWz2iw5b5OHjoy';
   document.getElementById('ie-video2').value = 'https://youtu.be/EggGrBXXpm0?si=K1UrvXYsK3MjOrM7';
   document.getElementById('ie-showpage').value = 'https://udihabari.com/%d7%90%d7%95%d7%93%d7%99-%d7%94%d7%91%d7%a8%d7%99-%d7%9e%d7%a1%d7%a2-%d7%99%d7%a9%d7%a8%d7%90%d7%9c%d7%99/';
-  document.getElementById('ie-subject').value = 'הצעה למופעי תוכן ואירועי שיא לתלמידים (מאושר גפ"ן וסל תרבות) – הזמר אודי הברי ✨';
+  const subjects = {
+    schools:  'הצעה למופעי תוכן ואירועי שיא לתלמידים (מאושר גפ"ן וסל תרבות) – הזמר אודי הברי ✨',
+    matnasim: 'הצעה לאירועי תוכן ותרבות לקהילה – הזמר אודי הברי ✨',
+    gimlaaim: 'הצעה למופעי בוקר ואירועי גיל הזהב – הזמר אודי הברי ✨',
+  };
+  document.getElementById('ie-subject').value = subjects[activeGroup] || subjects.schools;
   document.getElementById('intro-email-overlay').style.display = 'flex';
   setTimeout(() => document.getElementById('ie-firstname').focus(), 100);
 }
@@ -3407,27 +3451,58 @@ async function generateIntroEmail() {
     ? '<a href="' + showpage + '" style="color:#2c6fad">למעבר לעמוד המופע לחצי כאן</a>'
     : 'למעבר לעמוד המופע לחצי כאן';
 
-  const htmlBody = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body dir="rtl" style="font-family:Arial,sans-serif;font-size:15px;line-height:1.8;color:#222;max-width:640px;margin:0 auto;padding:20px">'
-    + '<p>שלום ' + firstName + ',</p>'
-    + '<p>נעים מאוד, 🙂 שמי אסתר.<br>'
-    + 'דיברתי עם מנהלת המשרד שלכם, והבנתי שאת הכתובת המדויקת לכל ענייני המופעים והתוכן החברתי לתלמידים בבית הספר.</p>'
-    + '<p>לאודי יש ניסיון רב שנים בהופעות מול תלמידים, ואנו מציעים מגוון מופעי תוכן מעשירים לצד אירועי שיא לאורך כל שנת הלימודים: מופעי תחילת/סוף שנה, &ldquo;שלום כיתה א&rsquo;&rdquo;, חגי תשרי, פורים, יום העצמאות, יום ירושלים ועוד. 🎤</p>'
-    + '<p>' + catalogLink + '</p>'
-    + '<div style="text-align:center;margin:20px 0"><img src="https://nunah31.github.io/UM-Contacts/brochure-masai-yesodi.png" alt="מסע ישראלי" width="280" style="width:280px;max-width:100%;border-radius:8px;display:block;margin:0 auto"></div>'
-    + '<p><strong>🌟 המופע המוביל: &ldquo;מסע ישראלי&rdquo;</strong></p>'
-    + '<p>מופע מוזיקלי חוויתי המותאם אישית לחג או לאירוע הספציפי שלשמו הוזמן. 🎹<br>'
-    + 'המופע מלווה במצגת מילים אינטראקטיבית ומסונכרנת, המאפשרת לתלמידים ולמורים לקחת חלק פעיל, לשיר ולרקוד יחד.</p>'
-    + '<ul style="margin:12px 0;padding-right:24px">'
-    + '<li>🔒 המופע מאושר בתוכנית גפ&rdquo;ן ובסל תרבות ארצי (היצע אמנותי) לכיתות א&rsquo; עד י&rdquo;ב.</li>'
-    + '<li>📍 ניתן לקיים את המופע בחצר בית הספר, באולם ספורט או באולם מוחשך (עם מקרן ומסך).</li>'
-    + '</ul>'
-    + '<p>לטעימה קטנה מתוך האנרגיה במופע, מוזמנת ללחוץ על הקישורים:</p>'
-    + '<p>' + video1Link + '</p>'
-    + '<p>' + video2Link + '</p>'
-    + '<p>' + showpageLink + '</p>'
-    + '<p>אשמח מאוד לעמוד לרשותך, לענות על כל שאלה ולהתאים לכם הצעת מחיר מדויקת למופע שתבחרו 😊</p>'
-    + '<p><strong>אסתר</strong> &bull; <a href="https://wa.me/972535544076" style="color:#25d366;text-decoration:none">📱 053-5544076</a></p>'
-    + '</body></html>';
+  const wrap = s => '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body dir="rtl" style="font-family:Arial,sans-serif;font-size:15px;line-height:1.8;color:#222;max-width:640px;margin:0 auto;padding:20px">' + s + '<p><strong>אסתר</strong> &bull; <a href="https://wa.me/972535544076" style="color:#25d366;text-decoration:none">📱 053-5544076</a></p></body></html>';
+  const sig = '';
+
+  let htmlBody;
+  if (activeGroup === 'matnasim') {
+    htmlBody = wrap(
+      '<p>שלום ' + firstName + ',</p>'
+      + '<p>נעים מאוד, 🙂 שמי אסתר.<br>'
+      + 'אנחנו מציעים אירועי תוכן ותרבות איכותיים לתושבי הקהילה – מופעים לכל הגילאים, אירועי חגים, ערבי תרבות ועוד. 🎤</p>'
+      + '<p>הזמר אודי הברי מביא עמו מופעים מוזיקליים חוויתיים, מלאי אנרגיה ורגש, המתאימים לאולמות המתנ"ס ולכל מסגרת קהילתית.</p>'
+      + '<p>' + catalogLink + '</p>'
+      + '<p>לטעימה מתוך המופעים:</p>'
+      + '<p>' + video1Link + '</p>'
+      + '<p>' + video2Link + '</p>'
+      + '<p>' + showpageLink + '</p>'
+      + '<p>אשמח לשוחח ולהתאים לכם הצעה מדויקת לאירוע הבא של המתנ"ס 😊</p>'
+    );
+  } else if (activeGroup === 'gimlaaim') {
+    htmlBody = wrap(
+      '<p>שלום ' + firstName + ',</p>'
+      + '<p>נעים מאוד, 🙂 שמי אסתר.<br>'
+      + 'אנחנו מתמחים במופעים לגיל הזהב – מופעי בוקר, ערבי קונספט וסיורים מוזיקליים שמביאים שמחה ונוסטלגיה. 🎹</p>'
+      + '<p>הזמר אודי הברי מעביר מופעים חמים ואינטימיים, עם שירים ישראליים אהובים, ויוצר חוויה בלתי נשכחת לקהל הגיל הזהב.</p>'
+      + '<p>' + catalogLink + '</p>'
+      + '<p>לטעימה מהאווירה:</p>'
+      + '<p>' + video1Link + '</p>'
+      + '<p>' + video2Link + '</p>'
+      + '<p>' + showpageLink + '</p>'
+      + '<p>אשמח לשמוע על האירוע הבא שלכם ולהתאים הצעה מדויקת 😊</p>'
+    );
+  } else {
+    htmlBody = wrap(
+      '<p>שלום ' + firstName + ',</p>'
+      + '<p>נעים מאוד, 🙂 שמי אסתר.<br>'
+      + 'דיברתי עם מנהלת המשרד שלכם, והבנתי שאת הכתובת המדויקת לכל ענייני המופעים והתוכן החברתי לתלמידים בבית הספר.</p>'
+      + '<p>לאודי יש ניסיון רב שנים בהופעות מול תלמידים, ואנו מציעים מגוון מופעי תוכן מעשירים לצד אירועי שיא לאורך כל שנת הלימודים: מופעי תחילת/סוף שנה, &ldquo;שלום כיתה א&rsquo;&rdquo;, חגי תשרי, פורים, יום העצמאות, יום ירושלים ועוד. 🎤</p>'
+      + '<p>' + catalogLink + '</p>'
+      + '<div style="text-align:center;margin:20px 0"><img src="https://nunah31.github.io/UM-Contacts/brochure-masai-yesodi.png" alt="מסע ישראלי" width="280" style="width:280px;max-width:100%;border-radius:8px;display:block;margin:0 auto"></div>'
+      + '<p><strong>🌟 המופע המוביל: &ldquo;מסע ישראלי&rdquo;</strong></p>'
+      + '<p>מופע מוזיקלי חוויתי המותאם אישית לחג או לאירוע הספציפי שלשמו הוזמן. 🎹<br>'
+      + 'המופע מלווה במצגת מילים אינטראקטיבית ומסונכרנת, המאפשרת לתלמידים ולמורים לקחת חלק פעיל, לשיר ולרקוד יחד.</p>'
+      + '<ul style="margin:12px 0;padding-right:24px">'
+      + '<li>🔒 המופע מאושר בתוכנית גפ&rdquo;ן ובסל תרבות ארצי (היצע אמנותי) לכיתות א&rsquo; עד י&rdquo;ב.</li>'
+      + '<li>📍 ניתן לקיים את המופע בחצר בית הספר, באולם ספורט או באולם מוחשך (עם מקרן ומסך).</li>'
+      + '</ul>'
+      + '<p>לטעימה קטנה מתוך האנרגיה במופע, מוזמנת ללחוץ על הקישורים:</p>'
+      + '<p>' + video1Link + '</p>'
+      + '<p>' + video2Link + '</p>'
+      + '<p>' + showpageLink + '</p>'
+      + '<p>אשמח מאוד לעמוד לרשותך, לענות על כל שאלה ולהתאים לכם הצעת מחיר מדויקת למופע שתבחרו 😊</p>'
+    );
+  }
 
   // Step 1: Copy HTML to clipboard
   try {
