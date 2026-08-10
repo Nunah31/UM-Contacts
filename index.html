@@ -721,20 +721,13 @@
     <button class="sidebar-btn" onclick="setView('campaigns', this)">📢 הפצות</button>
   </div>
 
-  <div class="sidebar-section">
-    <label>שלב בחינוך</label>
-    <div id="level-filters">
-      <span class="filter-chip active" data-level="" onclick="toggleLevelFilter(this, '')">הכל</span>
-      <span class="filter-chip" data-level="יסודי" onclick="toggleLevelFilter(this, 'יסודי')">יסודי</span>
-      <span class="filter-chip" data-level="חטיבה" onclick="toggleLevelFilter(this, 'חטיבה')">חטיבה</span>
-      <span class="filter-chip" data-level="תיכון" onclick="toggleLevelFilter(this, 'תיכון')">תיכון</span>
-      <span class="filter-chip" data-level="שש" onclick="toggleLevelFilter(this, 'שש')">שש שנתי</span>
-    </div>
+  <div class="sidebar-section" id="level-filter-section">
+    <!-- rendered by renderLevelFilters() -->
   </div>
 
-  <div class="sidebar-section">
+  <div class="sidebar-section" id="status-filter-section">
     <label>סטטוס מעקב</label>
-    <div>
+    <div id="status-filters">
       <span class="filter-chip active" data-status="" onclick="toggleStatusFilter(this, '')">הכל</span>
       <span class="filter-chip" data-status="overdue" onclick="toggleStatusFilter(this, 'overdue')">⏰ באיחור</span>
       <span class="filter-chip" data-status="today" onclick="toggleStatusFilter(this, 'today')">📅 היום</span>
@@ -1383,6 +1376,9 @@ async function switchGroup(group) {
   // Reset detail panel to empty state
   document.querySelectorAll('#detail-panel .view').forEach(v => v.classList.remove('active'));
   document.getElementById('empty-state').style.display = 'flex';
+  renderLevelFilters();
+  activeStatus = '';
+  document.querySelectorAll('[data-status]').forEach(c => c.classList.toggle('active', c.dataset.status === ''));
   // Switch to contacts view
   setView('contacts', document.querySelector('.sidebar-btn[onclick*="contacts"]'));
   showToast('✓ ' + GROUPS[group].label);
@@ -1398,6 +1394,7 @@ async function init() {
   document.querySelectorAll('.group-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.group === activeGroup);
   });
+  renderLevelFilters();
 
   const loaded = loadFromStorage();
   if (!loaded) {
@@ -1488,6 +1485,10 @@ function applyFilters() {
       if (!c.conversations || c.conversations.length === 0) return false;
     } else if (activeStatus === 'performed') {
       if (!c.performedBefore) return false;
+    } else if (activeStatus === 'relevant') {
+      if (c.isRelevant === false) return false;
+    } else if (activeStatus === 'not-relevant') {
+      if (c.isRelevant !== false) return false;
     }
     if (activeCampaignFilter) {
       const camp = campaigns.find(cp => cp.id === activeCampaignFilter);
@@ -1529,11 +1530,28 @@ function toggleLevelFilter(el, level) {
 }
 
 function toggleStatusFilter(el, status) {
-  const chips = document.querySelectorAll('[data-status]');
-  chips.forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('[data-status]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   activeStatus = status;
   applyFilters();
+}
+
+function renderLevelFilters() {
+  const sec = document.getElementById('level-filter-section');
+  if (!sec) return;
+  activeLevel = '';
+  const groups = {
+    schools:  { label: 'שלב בחינוך',  chips: [['','הכל'],['יסודי','יסודי'],['חטיבה','חטיבה'],['תיכון','תיכון'],['שש שנתי','שש שנתי']] },
+    matnasim: { label: 'תחום עניין',   chips: [['','הכל'],['מבוגרים','מבוגרים'],['נוער','נוער'],['ילדים','ילדים'],['גימלאים','גימלאים'],['הכל','כל הגילאים']] },
+    gimlaaim: { label: 'תחום עניין',   chips: [['','הכל'],['מופעי קונספט','קונספט'],['מופעי בוקר','מופעי בוקר'],['תקציב נמוך','תקציב נמוך']] },
+  };
+  const g = groups[activeGroup] || groups.schools;
+  sec.innerHTML = `
+    <label>${g.label}</label>
+    <div id="level-filters">
+      ${g.chips.map((c,i) => `<span class="filter-chip${i===0?' active':''}" onclick="toggleLevelFilter(this,'${c[0]}')">${c[1]}</span>`).join('')}
+    </div>
+  `;
 }
 
 function populateCityFilter() {
@@ -1589,9 +1607,10 @@ function renderList() {
 
     const lastNote = c.conversations && c.conversations.length > 0 ? c.conversations[0].notes.slice(0, 60) : '';
 
-    return `<div class="contact-item ${selectedContact && selectedContact.id === c.id ? 'selected' : ''}" onclick="isMobile()?mobileSelectContact('${c.id}'):selectContact('${c.id}')" data-tooltip-id="${c.id}">
+    const isIrrelevant = activeGroup === 'gimlaaim' && c.isRelevant === false;
+    return `<div class="contact-item ${selectedContact && selectedContact.id === c.id ? 'selected' : ''}" onclick="isMobile()?mobileSelectContact('${c.id}'):selectContact('${c.id}')" data-tooltip-id="${c.id}" style="${isIrrelevant ? 'opacity:0.45;background:#f0f0f0;' : ''}">
       ${indicatorClass ? `<div class="follow-up-indicator ${indicatorClass}" title="${indicatorTitle}"></div>` : ''}
-      <div class="school-name">${highlight(c.school)}</div>
+      <div class="school-name">${highlight(c.school)}${isIrrelevant ? ' <span style="font-size:11px;color:#999">⛔</span>' : ''}</div>
       <div class="city-name">${highlight(c.city)} ${levelTag}</div>
       ${lastNote ? `<div class="last-note">${lastNote}</div>` : ''}
     </div>`;
@@ -1967,34 +1986,60 @@ function markPerformed() {
 
 function editContact() {
   const c = selectedContact;
+  const isSch = activeGroup === 'schools';
+  const isMat = activeGroup === 'matnasim';
+  const isGim = activeGroup === 'gimlaaim';
+
+  const schoolLabel    = isSch ? 'שם בית הספר' : 'שם המוסד';
+  const phoneLabel     = isSch ? 'טלפון ביה"ס'  : 'טלפון משרד';
+  const schEmailLabel  = isSch ? 'מייל בי"ס'    : 'מייל משרד';
+  const levelLabel     = isSch ? 'שלב בחינוך'   : 'תחום עניין';
+
+  const levelOptions = isSch
+    ? `<option value="" ${!c.level?'selected':''}>---</option>
+       <option value="יסודי"    ${c.level==='יסודי'?'selected':''}>יסודי</option>
+       <option value="חטיבה"   ${c.level==='חטיבה'?'selected':''}>חטיבה</option>
+       <option value="תיכון"   ${c.level==='תיכון'?'selected':''}>תיכון</option>
+       <option value="שש שנתי" ${c.level==='שש שנתי'?'selected':''}>שש שנתי</option>`
+    : isMat
+    ? `<option value="" ${!c.level?'selected':''}>---</option>
+       <option value="מבוגרים"  ${c.level==='מבוגרים'?'selected':''}>מבוגרים</option>
+       <option value="נוער"     ${c.level==='נוער'?'selected':''}>נוער</option>
+       <option value="ילדים"    ${c.level==='ילדים'?'selected':''}>ילדים</option>
+       <option value="גימלאים"  ${c.level==='גימלאים'?'selected':''}>גימלאים</option>
+       <option value="הכל"      ${c.level==='הכל'?'selected':''}>הכל</option>`
+    : `<option value="" ${!c.level?'selected':''}>---</option>
+       <option value="מופעי קונספט" ${c.level==='מופעי קונספט'?'selected':''}>מופעי קונספט</option>
+       <option value="מופעי בוקר"   ${c.level==='מופעי בוקר'?'selected':''}>מופעי בוקר</option>
+       <option value="תקציב נמוך"   ${c.level==='תקציב נמוך'?'selected':''}>תקציב נמוך</option>`;
+
   const html = `
     <h3>✏️ עריכת פרטים</h3>
     <div class="form-row">
-      <div class="form-group"><label>שם בית הספר</label><input id="e-school" value="${escHtml(c.school)}"></div>
-      <div class="form-group"><label>עיר</label><input id="e-city" value="${escHtml(c.city)}"></div>
+      <div class="form-group"><label>${schoolLabel}</label><input id="e-school" value="${escHtml(c.school||'')}"></div>
+      <div class="form-group"><label>עיר</label><input id="e-city" value="${escHtml(c.city||'')}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>שלב בחינוך</label>
-        <select id="e-level">
-          <option value="" ${!c.level ? 'selected' : ''}>---</option>
-          <option value="יסודי" ${c.level==='יסודי'?'selected':''}>יסודי</option>
-          <option value="חטיבה" ${c.level==='חטיבה'?'selected':''}>חטיבה</option>
-          <option value="תיכון" ${c.level==='תיכון'?'selected':''}>תיכון</option>
-          <option value="שש שנתי" ${c.level==='שש שנתי'?'selected':''}>שש שנתי</option>
-        </select>
+      <div class="form-group"><label>${levelLabel}</label>
+        <select id="e-level">${levelOptions}</select>
       </div>
-      <div class="form-group"><label>כתובת</label><input id="e-address" value="${escHtml(c.address)}"></div>
+      ${isSch ? `<div class="form-group"><label>כתובת</label><input id="e-address" value="${escHtml(c.address||'')}"></div>` : ''}
+      ${isGim ? `<div class="form-group"><label>סטטוס</label>
+        <select id="e-relevant">
+          <option value="true"  ${c.isRelevant!==false?'selected':''}>רלוונטי ✅</option>
+          <option value="false" ${c.isRelevant===false?'selected':''}>לא רלוונטי ⛔</option>
+        </select></div>` : ''}
     </div>
     <div class="form-row">
-      <div class="form-group"><label>טלפון ביה"ס</label><input id="e-phone" value="${escHtml(c.phone)}"></div>
-      <div class="form-group"><label>מייל בי"ס</label><input id="e-school-email" value="${escHtml(c.schoolEmail||'')}"></div>
+      <div class="form-group"><label>${phoneLabel}</label><input id="e-phone" value="${escHtml(c.phone||'')}"></div>
+      <div class="form-group"><label>${schEmailLabel}</label><input id="e-school-email" value="${escHtml(c.schoolEmail||'')}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>שם איש קשר</label><input id="e-contact" value="${escHtml(c.contactName)}"></div>
-      <div class="form-group"><label>נייד איש קשר</label><input id="e-mobile" value="${escHtml(c.mobile)}"></div>
+      <div class="form-group"><label>שם איש קשר</label><input id="e-contact" value="${escHtml(c.contactName||'')}"></div>
+      <div class="form-group"><label>נייד איש קשר</label><input id="e-mobile" value="${escHtml(c.mobile||'')}"></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>מייל איש קשר</label><input id="e-email" value="${escHtml(c.email)}"></div>
+      <div class="form-group"><label>מייל איש קשר</label><input id="e-email" value="${escHtml(c.email||'')}"></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>שם איש קשר 02</label><input id="e-contact2" value="${escHtml(c.contactName2||'')}"></div>
@@ -2002,6 +2047,20 @@ function editContact() {
     </div>
     <div class="form-row">
       <div class="form-group"><label>מייל איש קשר 02</label><input id="e-email2" value="${escHtml(c.email2||'')}"></div>
+      <div class="form-group"><label>תאריך קשר אחרון</label><input type="date" id="e-last-contact" value="${escHtml(c.lastContactDate||'')}"></div>
+    </div>
+    <div class="form-group">
+      <label>הערות</label>
+      <textarea id="e-notes" style="min-height:80px">${escHtml(c.notes||'')}</textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>העברה לקבוצה</label>
+        <select id="e-group">
+          <option value="schools"  ${activeGroup==='schools' ?'selected':''}>🏫 בתי ספר</option>
+          <option value="matnasim" ${activeGroup==='matnasim'?'selected':''}>🏛️ מתנ"סים</option>
+          <option value="gimlaaim" ${activeGroup==='gimlaaim'?'selected':''}>👴 גימלאים</option>
+        </select>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeEditModal()">ביטול</button>
@@ -2030,24 +2089,50 @@ function closeEditModalIfOverlay(e) {
 function saveEdit() {
   const c = selectedContact;
   const oldCity = c.city;
-  c.school = document.getElementById('e-school').value.trim();
-  c.city = document.getElementById('e-city').value.trim();
-  c.level = document.getElementById('e-level').value;
-  c.address = document.getElementById('e-address').value.trim();
-  c.phone = document.getElementById('e-phone').value.trim();
+  const newGroup = document.getElementById('e-group').value;
+
+  c.school      = document.getElementById('e-school').value.trim();
+  c.city        = document.getElementById('e-city').value.trim();
+  c.level       = document.getElementById('e-level').value;
+  const addrEl  = document.getElementById('e-address');
+  if (addrEl) c.address = addrEl.value.trim();
+  c.phone       = document.getElementById('e-phone').value.trim();
   c.schoolEmail = document.getElementById('e-school-email').value.trim();
-  c.mobile = document.getElementById('e-mobile').value.trim();
+  c.mobile      = document.getElementById('e-mobile').value.trim();
   c.contactName = document.getElementById('e-contact').value.trim();
-  c.email = document.getElementById('e-email').value.trim();
-  c.contactName2 = document.getElementById('e-contact2').value.trim();
-  c.mobile2 = document.getElementById('e-mobile2').value.trim();
-  c.email2 = document.getElementById('e-email2').value.trim();
-  saveToStorage();
+  c.email       = document.getElementById('e-email').value.trim();
+  c.contactName2= document.getElementById('e-contact2').value.trim();
+  c.mobile2     = document.getElementById('e-mobile2').value.trim();
+  c.email2      = document.getElementById('e-email2').value.trim();
+  c.lastContactDate = document.getElementById('e-last-contact').value;
+  c.notes       = document.getElementById('e-notes').value.trim();
+  const relEl   = document.getElementById('e-relevant');
+  if (relEl) c.isRelevant = relEl.value !== 'false';
+
+  if (newGroup !== activeGroup) {
+    // Remove from current group
+    allContacts = allContacts.filter(x => x.id !== c.id);
+    saveToStorage();
+    // Switch to new group and insert contact there
+    activeGroup = newGroup;
+    localStorage.setItem('um_active_group', newGroup);
+    loadFromStorage();
+    allContacts.unshift(c);
+    saveToStorage();
+    // Update UI for new group
+    document.querySelectorAll('.group-btn').forEach(b => b.classList.toggle('active', b.dataset.group === newGroup));
+    document.getElementById('sidebar').style.background = GROUPS[newGroup].color;
+    renderLevelFilters();
+    showToast('✓ הקשר הועבר ל-' + GROUPS[newGroup].label);
+  } else {
+    saveToStorage();
+    showToast('הפרטים עודכנו ✓');
+  }
+
   closeEditModal();
   if (oldCity !== c.city) populateCityFilter();
   applyFilters();
   showContactDetail();
-  showToast('הפרטים עודכנו ✓');
 }
 
 // =================== VIEWS ===================
