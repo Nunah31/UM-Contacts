@@ -620,7 +620,7 @@
     /* SECONDARY VIEWS on mobile — full screen fixed overlays */
     .secondary-view {
       position: fixed !important;
-      top: 106px !important; bottom: 68px !important;
+      top: 150px !important; bottom: 68px !important;
       left: 0 !important; right: 0 !important;
       background: var(--bg);
       padding: 16px;
@@ -2866,17 +2866,31 @@ async function loadCampaignsFromGitHub() {
   try {
     const url = `https://api.github.com/repos/${DATA_REPO}/contents/${CAMPAIGNS_GH_FILE}`;
     const resp = await fetch(url, { headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' } });
-    if (!resp.ok) return false;
+    if (!resp.ok) {
+      // File doesn't exist yet — push local campaigns to create it
+      if (resp.status === 404 && campaigns.length > 0) {
+        await saveCampaignsToGitHub();
+      }
+      return false;
+    }
     const meta = await resp.json();
     _campaignsSha = meta.sha;
     const data = JSON.parse(atob(meta.content.replace(/\n/g, '')));
-    if (Array.isArray(data) && data.length > 0) {
-      // Merge: GitHub is authoritative, but keep local-only items not yet pushed
+    if (Array.isArray(data)) {
+      // Merge: prefer newer sentAt; keep local-only items
       const ghIds = new Set(data.map(c => c.id));
       const localOnly = campaigns.filter(c => !ghIds.has(c.id));
-      campaigns = [...data, ...localOnly];
+      // For shared IDs, pick the one with sentAt if either has it
+      const merged = data.map(ghC => {
+        const localC = campaigns.find(c => c.id === ghC.id);
+        if (localC && localC.sentAt && !ghC.sentAt) return Object.assign({}, ghC, { sentAt: localC.sentAt });
+        return ghC;
+      });
+      campaigns = [...merged, ...localOnly];
       localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
-      return true;
+      // If local had extra sentAt data, push merged version back
+      if (localOnly.length > 0) saveCampaignsToGitHub().catch(() => {});
+      return campaigns.length > 0;
     }
   } catch(e) {}
   return false;
@@ -3924,7 +3938,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=32').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=33').catch(() => {});
   });
 }
 
