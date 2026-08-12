@@ -506,6 +506,34 @@
   #mobile-header .mob-search-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px; }
   #mobile-header .mob-back-btn { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 4px; display: none; }
 
+  #mobile-group-bar {
+    display: none;
+    position: fixed; top: 56px; left: 0; right: 0;
+    background: #1a2535;
+    z-index: 99;
+    padding: 6px 10px;
+    gap: 8px;
+    justify-content: center;
+    border-bottom: 1px solid #2e3f55;
+  }
+  .mob-group-btn {
+    flex: 1; max-width: 110px;
+    padding: 5px 4px;
+    border-radius: 8px;
+    border: 1.5px solid #2e3f55;
+    background: none;
+    color: #aab;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    text-align: center;
+  }
+  .mob-group-btn.active {
+    color: #fff;
+    font-weight: 700;
+    border-color: transparent;
+  }
+
   #mobile-search-bar {
     display: none;
     position: fixed; top: 0; left: 0; right: 0;
@@ -527,20 +555,21 @@
     #sidebar { display: none; }
     #mobile-nav { display: block; }
     #mobile-header { display: flex; }
+    #mobile-group-bar { display: flex; }
 
     #mobile-filter-bar { display: block !important; }
 
     #main {
       flex-direction: column;
       position: fixed;
-      top: 106px;
+      top: 150px;
       bottom: 68px;
       left: 0; right: 0;
       overflow: hidden;
     }
 
     #view-reminders, #view-duplicates, #view-stats {
-      top: 106px !important;
+      top: 150px !important;
     }
 
     /* LIST PANEL — full screen, scrollable */
@@ -646,26 +675,21 @@
   <button class="mob-search-btn" onclick="toggleMobileSearch()">🔍</button>
 </div>
 
+<!-- MOBILE GROUP SWITCHER -->
+<div id="mobile-group-bar">
+  <button class="mob-group-btn active" data-group="schools" onclick="mobileSwitchGroup('schools',this)" style="background:#1e4f7e">🏫 בתי ספר</button>
+  <button class="mob-group-btn" data-group="matnasim" onclick="mobileSwitchGroup('matnasim',this)">🏢 מתנ"סים</button>
+  <button class="mob-group-btn" data-group="gimlaaim" onclick="mobileSwitchGroup('gimlaaim',this)">🧓 גימלאים</button>
+</div>
+
 <!-- MOBILE SEARCH -->
 <div id="mobile-search-bar">
   <input type="text" id="mobile-search-input" placeholder="חיפוש..." oninput="onMobileSearch(this.value);toggleClearBtn()" dir="rtl">
   <button class="mobile-search-cancel" onclick="closeMobileSearch()">ביטול</button>
 </div>
 
-<!-- MOBILE FILTER BAR -->
-<div id="mobile-filter-bar" style="display:none;position:fixed;top:56px;left:0;right:0;z-index:90;background:#fff;border-bottom:1px solid var(--border);padding:8px 12px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;">
-  <span class="filter-chip active" data-mob-level="" onclick="mobFilterLevel(this,'')">הכל</span>
-  <span class="filter-chip" data-mob-level="יסודי" onclick="mobFilterLevel(this,'יסודי')">יסודי</span>
-  <span class="filter-chip" data-mob-level="חטיבה" onclick="mobFilterLevel(this,'חטיבה')">חטיבה</span>
-  <span class="filter-chip" data-mob-level="תיכון" onclick="mobFilterLevel(this,'תיכון')">תיכון</span>
-  <span class="filter-chip" data-mob-level="שש" onclick="mobFilterLevel(this,'שש')">שש שנתי</span>
-  <span style="display:inline-block;width:1px;height:20px;background:var(--border);margin:0 6px;vertical-align:middle"></span>
-  <span class="filter-chip" data-mob-status="" onclick="mobFilterStatus(this,'')">כל סטטוס</span>
-  <span class="filter-chip" data-mob-status="overdue" onclick="mobFilterStatus(this,'overdue')">⏰ באיחור</span>
-  <span class="filter-chip" data-mob-status="today" onclick="mobFilterStatus(this,'today')">📅 היום</span>
-  <span class="filter-chip" data-mob-status="has-convo" onclick="mobFilterStatus(this,'has-convo')">💬 עם היסטוריה</span>
-  <span class="filter-chip" data-mob-status="performed" onclick="mobFilterStatus(this,'performed')">✓ הופענו</span>
-</div>
+<!-- MOBILE FILTER BAR (dynamic content rendered by renderMobileFilterBar()) -->
+<div id="mobile-filter-bar" style="display:none;position:fixed;top:100px;left:0;right:0;z-index:90;background:#fff;border-bottom:1px solid var(--border);padding:8px 12px;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch;"></div>
 
 <!-- MOBILE BOTTOM NAV -->
 <div id="mobile-nav">
@@ -1395,6 +1419,16 @@ async function init() {
     b.classList.toggle('active', b.dataset.group === activeGroup);
   });
   renderLevelFilters();
+  renderMobileFilterBar();
+
+  // Sync mobile group bar active state
+  document.querySelectorAll('.mob-group-btn').forEach(b => {
+    const isActive = b.dataset.group === activeGroup;
+    b.classList.toggle('active', isActive);
+    b.style.background = isActive ? GROUPS[activeGroup].color : '';
+  });
+  const mt = document.getElementById('mobile-title');
+  if (mt) mt.textContent = GROUPS[activeGroup].label;
 
   const loaded = loadFromStorage();
   if (!loaded) {
@@ -3667,11 +3701,45 @@ function onMobileSearch(val) {
   applyFilters();
 }
 
+function renderMobileFilterBar() {
+  const bar = document.getElementById('mobile-filter-bar');
+  if (!bar) return;
+  activeLevel = '';
+  const levelChips = {
+    schools:  [['','הכל'],['יסודי','יסודי'],['חטיבה','חטיבה'],['תיכון','תיכון'],['שש שנתי','שש שנתי']],
+    matnasim: [['','הכל'],['מבוגרים','מבוגרים'],['נוער','נוער'],['ילדים','ילדים'],['גימלאים','גימלאים']],
+    gimlaaim: [['','הכל'],['מופעי קונספט','קונספט'],['מופעי בוקר','מופעי בוקר'],['תקציב נמוך','תקציב נמוך']],
+  };
+  const chips = (levelChips[activeGroup] || levelChips.schools).map((c,i) =>
+    `<span class="filter-chip${i===0?' active':''}" data-mob-level="${c[0]}" onclick="mobFilterLevel(this,'${c[0]}')">${c[1]}</span>`
+  ).join('');
+  const sep = `<span style="display:inline-block;width:1px;height:20px;background:var(--border);margin:0 6px;vertical-align:middle"></span>`;
+  bar.innerHTML = chips + sep +
+    `<span class="filter-chip active" data-mob-status="" onclick="mobFilterStatus(this,'')">כל סטטוס</span>` +
+    `<span class="filter-chip" data-mob-status="overdue" onclick="mobFilterStatus(this,'overdue')">⏰ באיחור</span>` +
+    `<span class="filter-chip" data-mob-status="today" onclick="mobFilterStatus(this,'today')">📅 היום</span>` +
+    `<span class="filter-chip" data-mob-status="has-convo" onclick="mobFilterStatus(this,'has-convo')">💬 היסטוריה</span>` +
+    `<span class="filter-chip" data-mob-status="performed" onclick="mobFilterStatus(this,'performed')">✓ הופענו</span>`;
+}
+
+async function mobileSwitchGroup(group, btn) {
+  document.querySelectorAll('.mob-group-btn').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = '';
+  });
+  btn.classList.add('active');
+  btn.style.background = GROUPS[group].color;
+  await switchGroup(group);
+  renderMobileFilterBar();
+  // update mobile title
+  const t = document.getElementById('mobile-title');
+  if (t) t.textContent = GROUPS[group].label;
+}
+
 function mobFilterLevel(el, level) {
   document.querySelectorAll('[data-mob-level]').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   activeLevel = level;
-  // sync desktop filter
   document.querySelectorAll('#level-filters .filter-chip').forEach(c => {
     c.classList.toggle('active', c.dataset.level === level);
   });
@@ -3856,7 +3924,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=31').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=32').catch(() => {});
   });
 }
 
