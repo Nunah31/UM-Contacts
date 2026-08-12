@@ -1412,6 +1412,11 @@ async function init() {
     }
   }
 
+  // Load campaigns from GitHub so all devices stay in sync
+  loadCampaignsFromGitHub().then(synced => {
+    if (synced) renderCampaignsList();
+  });
+
   populateCityFilter();
   updateBadges();
   applyFilters();
@@ -2806,7 +2811,6 @@ function saveCampaigns() {
   try {
     localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
   } catch(e) {
-    // Quota exceeded — retry without brochure images
     const slim = campaigns.map(c => Object.assign({}, c, { brochureImage: null }));
     try {
       localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(slim));
@@ -2814,6 +2818,59 @@ function saveCampaigns() {
     } catch(e2) {
       showToast('❌ שגיאה: לא ניתן לשמור — אחסון מלא');
     }
+  }
+  // Sync to GitHub in background (so mobile also sees updates)
+  saveCampaignsToGitHub().catch(() => {});
+}
+
+const CAMPAIGNS_GH_FILE = 'campaigns.json';
+let _campaignsSha = null; // SHA needed for GitHub PUT
+
+async function loadCampaignsFromGitHub() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) return false;
+  try {
+    const url = `https://api.github.com/repos/${DATA_REPO}/contents/${CAMPAIGNS_GH_FILE}`;
+    const resp = await fetch(url, { headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' } });
+    if (!resp.ok) return false;
+    const meta = await resp.json();
+    _campaignsSha = meta.sha;
+    const data = JSON.parse(atob(meta.content.replace(/\n/g, '')));
+    if (Array.isArray(data) && data.length > 0) {
+      // Merge: GitHub is authoritative, but keep local-only items not yet pushed
+      const ghIds = new Set(data.map(c => c.id));
+      const localOnly = campaigns.filter(c => !ghIds.has(c.id));
+      campaigns = [...data, ...localOnly];
+      localStorage.setItem(CAMPAIGNS_KEY, JSON.stringify(campaigns));
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+async function saveCampaignsToGitHub() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) return;
+  const slim = campaigns.map(c => Object.assign({}, c, { brochureImage: null }));
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(slim, null, 2))));
+  const url = `https://api.github.com/repos/${DATA_REPO}/contents/${CAMPAIGNS_GH_FILE}`;
+  // Get current SHA if we don't have it
+  if (!_campaignsSha) {
+    try {
+      const r = await fetch(url, { headers: { 'Authorization': 'token ' + token } });
+      if (r.ok) { const m = await r.json(); _campaignsSha = m.sha; }
+    } catch(e) {}
+  }
+  const body = { message: 'Update campaigns', content };
+  if (_campaignsSha) body.sha = _campaignsSha;
+  const resp = await fetch(url, {
+    method: 'PUT',
+    headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (resp.ok) {
+    const r = await resp.json();
+    _campaignsSha = r.content && r.content.sha;
   }
 }
 
@@ -3799,7 +3856,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=30').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=31').catch(() => {});
   });
 }
 
