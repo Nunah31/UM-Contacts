@@ -869,6 +869,23 @@
   <div id="lists-container"></div>
 </div>
 
+<!-- RECIPIENTS MANAGER MODAL -->
+<div id="recipients-manager-overlay" onclick="if(event.target===this)closeRecipientsManager()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1100;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:520px;max-width:96vw;max-height:85vh;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;">
+    <div style="padding:20px 24px 14px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h3 style="font-size:17px;font-weight:700" id="recip-mgr-title">👥 ניהול נמענים</h3>
+        <button onclick="closeRecipientsManager()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">×</button>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:6px">סמני מי ביקש להסיר — הקשר לא יתווסף להפצות עתידיות</p>
+    </div>
+    <div id="recip-mgr-list" style="overflow-y:auto;flex:1;padding:8px 0"></div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;text-align:center">
+      <button class="btn btn-primary" onclick="closeRecipientsManager()">סגירה</button>
+    </div>
+  </div>
+</div>
+
 <!-- SET REMINDER MODAL -->
 <div id="followup-modal-overlay" onclick="if(event.target===this)closeFollowUpModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;padding:28px;width:420px;max-width:96vw;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.25);">
@@ -1536,7 +1553,7 @@ function applyFilters() {
       if (!camp || !(camp.recipients || []).includes(c.id)) return false;
     }
     if (search) {
-      const haystack = (c.school + ' ' + c.city + ' ' + c.contactName + ' ' + (c.mobile||'') + ' ' + (c.phone||'')).toLowerCase();
+      const haystack = (c.school + ' ' + c.city + ' ' + c.contactName + ' ' + (c.mobile||'') + ' ' + (c.phone||'') + ' ' + (c.email||'') + ' ' + (c.schoolEmail||'') + ' ' + (c.contactName2||'')).toLowerCase();
       if (!haystack.includes(search)) return false;
     }
     return true;
@@ -1728,6 +1745,7 @@ function showContactDetail() {
           ${c.city ? escHtml(c.city) : ''}
           ${c.level ? `<span class="level-tag ${levelClass}" style="margin-right:8px">${escHtml(c.level)}</span>` : ''}
           ${c.performedBefore ? '<span class="level-tag" style="background:#d4edda;color:#155724;margin-right:6px">✓ הופענו בעבר</span>' : ''}
+          ${c.unsubscribed ? '<span class="level-tag" style="background:#f8d7da;color:#721c24;margin-right:6px">⛔ ביקש הסרה</span>' : ''}
           ${c.source === 'leads' ? '<span class="level-tag" style="background:#d1ecf1;color:#0c5460">ליד</span>' : ''}
         </div>
       </div>
@@ -3041,14 +3059,17 @@ function renderCampaignRecipients() {
   document.getElementById('cp-email-count').textContent = emailCount;
   document.getElementById('cp-mobile-count').textContent = mobileCount;
 
-  document.getElementById('cp-recipients').innerHTML = list.slice(0, 200).map(c => `
-    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f0f2f5;cursor:pointer;font-size:14px">
-      <input type="checkbox" ${campaignSelectedIds.has(c.id)?'checked':''} onchange="toggleRecipient('${c.id}',this.checked)">
+  document.getElementById('cp-recipients').innerHTML = list.slice(0, 200).map(c => {
+    const unsub = !!c.unsubscribed;
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f0f2f5;cursor:${unsub?'not-allowed':'pointer'};font-size:14px;opacity:${unsub?'0.5':'1'}">
+      <input type="checkbox" ${campaignSelectedIds.has(c.id)?'checked':''} ${unsub?'disabled':''} onchange="toggleRecipient('${c.id}',this.checked)">
       <div style="flex:1">
         <div style="font-weight:600">${escHtml(c.school)}</div>
         <div style="font-size:12px;color:var(--muted)">${escHtml(c.city)} ${c.email?'📧':''}${c.mobile?'📱':''}</div>
+        ${unsub ? '<div style="font-size:11px;color:#e74c3c;font-weight:600">⛔ ביקש הסרה מרשימות תפוצה</div>' : ''}
       </div>
-    </label>`).join('') + (list.length > 200 ? `<div style="padding:8px 12px;font-size:12px;color:var(--muted)">מציג 200 ראשונים מתוך ${list.length}</div>` : '');
+    </label>`;
+  }).join('') + (list.length > 200 ? `<div style="padding:8px 12px;font-size:12px;color:var(--muted)">מציג 200 ראשונים מתוך ${list.length}</div>` : '');
 }
 
 function toggleRecipient(id, checked) {
@@ -3131,7 +3152,8 @@ function renderCampaignsList() {
           <button class="btn btn-primary btn-sm" onclick="openSendModal(${idx})">📤 שליחה</button>
           ${camp.sentAt
             ? `<span style="background:#d4edda;color:#155724;border-radius:6px;padding:4px 10px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px">✅ נשלח ${formatDateHe(camp.sentAt)}</span>
-               <button class="btn btn-outline btn-sm" onclick="filterByCampaign('${camp.id}')">🔍 סנן קשרים</button>`
+               <button class="btn btn-outline btn-sm" onclick="filterByCampaign('${camp.id}')">🔍 סנן קשרים</button>
+               <button class="btn btn-outline btn-sm" onclick="openRecipientsManager(${idx})">👥 ניהול נמענים</button>`
             : `<button class="btn btn-success btn-sm" onclick="markCampaignSent(${idx})">✅ סמני כנשלח</button>`}
           <button class="btn btn-outline btn-sm" onclick="editCampaign(${idx})">✏️ עריכה</button>
           <button class="btn btn-danger btn-sm" onclick="deleteCampaign(${idx})">🗑️</button>
@@ -3175,6 +3197,63 @@ function markCampaignSent(idx) {
   saveCampaigns();
   renderCampaignsList();
   showToast('✅ ההפצה סומנה כנשלחה!');
+}
+
+function openRecipientsManager(idx) {
+  const camp = campaigns[idx];
+  document.getElementById('recip-mgr-title').textContent = '👥 נמעני הפצה: ' + camp.name;
+  const recipients = (camp.recipients || []).map(id => allContacts.find(c => c.id === id)).filter(Boolean);
+  const el = document.getElementById('recip-mgr-list');
+  if (recipients.length === 0) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">אין נמענים</div>';
+  } else {
+    el.innerHTML = recipients.map(c => {
+      const unsub = !!c.unsubscribed;
+      return `<div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #f0f2f5;${unsub?'background:#fff5f5':''}">
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:14px">${escHtml(c.school || c.city)}</div>
+          <div style="font-size:12px;color:var(--muted)">${escHtml(c.city)}${c.email ? ' · ' + escHtml(c.email) : ''}</div>
+          ${unsub ? '<div style="font-size:11px;color:#e74c3c;font-weight:700;margin-top:2px">⛔ ביקש הסרה מרשימות תפוצה</div>' : ''}
+        </div>
+        ${unsub
+          ? `<button class="btn btn-outline btn-sm" style="color:var(--green);border-color:var(--green)" onclick="toggleUnsubscribed('${c.id}', false)">↩️ בטל הסרה</button>`
+          : `<button class="btn btn-sm" style="background:#fff0f0;color:#e74c3c;border:1px solid #f5c6cb" onclick="toggleUnsubscribed('${c.id}', true)">⛔ ביקש הסרה</button>`
+        }
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('recipients-manager-overlay').style.display = 'flex';
+}
+
+function closeRecipientsManager() {
+  document.getElementById('recipients-manager-overlay').style.display = 'none';
+}
+
+function toggleUnsubscribed(contactId, unsub) {
+  // Update across ALL groups (contact may be in any group)
+  let found = allContacts.find(c => c.id === contactId);
+  if (found) {
+    found.unsubscribed = unsub;
+    saveToStorage();
+  }
+  // Also check other groups
+  ['schools','matnasim','gimlaaim'].filter(g => g !== activeGroup).forEach(g => {
+    const key = g === 'schools' ? 'um_contacts_v4' : 'um_' + g + '_v1';
+    try {
+      const arr = JSON.parse(localStorage.getItem(key) || '[]');
+      const c = arr.find(x => x.id === contactId);
+      if (c) { c.unsubscribed = unsub; localStorage.setItem(key, JSON.stringify(arr)); }
+    } catch(e) {}
+  });
+  // Re-render the modal with updated data
+  const overlay = document.getElementById('recipients-manager-overlay');
+  if (overlay.style.display !== 'none') {
+    // find which campaign is open by scanning the title
+    const title = document.getElementById('recip-mgr-title').textContent;
+    const idx = campaigns.findIndex(c => title.includes(c.name));
+    if (idx >= 0) openRecipientsManager(idx);
+  }
+  showToast(unsub ? '⛔ סומן כ"ביקש הסרה" — לא יתווסף להפצות עתידיות' : '✓ ההסרה בוטלה');
 }
 
 function filterByCampaign(campaignId) {
@@ -3940,7 +4019,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=34').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=35').catch(() => {});
   });
 }
 
