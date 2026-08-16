@@ -879,6 +879,9 @@
       </div>
       <p style="font-size:13px;color:var(--muted);margin-top:6px">סמני מי ביקש להסיר — הקשר לא יתווסף להפצות עתידיות</p>
     </div>
+    <div style="padding:10px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <input id="recip-mgr-search" type="text" placeholder="🔍 חיפוש לפי שם / מייל / עיר..." oninput="filterRecipientsManager()" dir="rtl" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px">
+    </div>
     <div id="recip-mgr-list" style="overflow-y:auto;flex:1;padding:8px 0"></div>
     <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;text-align:center">
       <button class="btn btn-primary" onclick="closeRecipientsManager()">סגירה</button>
@@ -3199,30 +3202,49 @@ function markCampaignSent(idx) {
   showToast('✅ ההפצה סומנה כנשלחה!');
 }
 
+let _recipMgrCampIdx = null;
+
 function openRecipientsManager(idx) {
+  _recipMgrCampIdx = idx;
   const camp = campaigns[idx];
   document.getElementById('recip-mgr-title').textContent = '👥 נמעני הפצה: ' + camp.name;
-  const recipients = (camp.recipients || []).map(id => allContacts.find(c => c.id === id)).filter(Boolean);
+  const searchEl = document.getElementById('recip-mgr-search');
+  if (searchEl) searchEl.value = '';
+  renderRecipientsManagerList('');
+  document.getElementById('recipients-manager-overlay').style.display = 'flex';
+}
+
+function filterRecipientsManager() {
+  const q = (document.getElementById('recip-mgr-search').value || '').toLowerCase().trim();
+  renderRecipientsManagerList(q);
+}
+
+function renderRecipientsManagerList(q) {
+  const camp = campaigns[_recipMgrCampIdx];
+  if (!camp) return;
+  let recipients = (camp.recipients || []).map(id => allContacts.find(c => c.id === id)).filter(Boolean);
+  if (q) recipients = recipients.filter(c =>
+    (c.school + ' ' + c.city + ' ' + (c.email||'') + ' ' + (c.contactName||'')).toLowerCase().includes(q)
+  );
   const el = document.getElementById('recip-mgr-list');
   if (recipients.length === 0) {
-    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">אין נמענים</div>';
-  } else {
-    el.innerHTML = recipients.map(c => {
-      const unsub = !!c.unsubscribed;
-      return `<div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #f0f2f5;${unsub?'background:#fff5f5':''}">
-        <div style="flex:1">
-          <div style="font-weight:600;font-size:14px">${escHtml(c.school || c.city)}</div>
-          <div style="font-size:12px;color:var(--muted)">${escHtml(c.city)}${c.email ? ' · ' + escHtml(c.email) : ''}</div>
-          ${unsub ? '<div style="font-size:11px;color:#e74c3c;font-weight:700;margin-top:2px">⛔ ביקש הסרה מרשימות תפוצה</div>' : ''}
-        </div>
-        ${unsub
-          ? `<button class="btn btn-outline btn-sm" style="color:var(--green);border-color:var(--green)" onclick="toggleUnsubscribed('${c.id}', false)">↩️ בטל הסרה</button>`
-          : `<button class="btn btn-sm" style="background:#fff0f0;color:#e74c3c;border:1px solid #f5c6cb" onclick="toggleUnsubscribed('${c.id}', true)">⛔ ביקש הסרה</button>`
-        }
-      </div>`;
-    }).join('');
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted)">לא נמצאו תוצאות</div>';
+    return;
   }
-  document.getElementById('recipients-manager-overlay').style.display = 'flex';
+  el.innerHTML = recipients.map(c => {
+    const unsub = !!c.unsubscribed;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #f0f2f5;${unsub?'background:#fff5f5':''}">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${escHtml(c.school || c.city)}</div>
+        <div style="font-size:12px;color:var(--muted)">${escHtml(c.city)}${c.email ? ' · ' + escHtml(c.email) : ''}</div>
+        ${unsub ? '<div style="font-size:11px;color:#e74c3c;font-weight:700;margin-top:2px">⛔ ביקש הסרה מרשימות תפוצה</div>' : ''}
+      </div>
+      ${unsub
+        ? `<button class="btn btn-outline btn-sm" style="color:var(--green);border-color:var(--green)" onclick="toggleUnsubscribed('${c.id}', false)">↩️ בטל הסרה</button>`
+        : `<button class="btn btn-sm" style="background:#fff0f0;color:#e74c3c;border:1px solid #f5c6cb" onclick="toggleUnsubscribed('${c.id}', true)">⛔ ביקש הסרה</button>`
+      }
+    </div>`;
+  }).join('');
 }
 
 function closeRecipientsManager() {
@@ -3248,10 +3270,8 @@ function toggleUnsubscribed(contactId, unsub) {
   // Re-render the modal with updated data
   const overlay = document.getElementById('recipients-manager-overlay');
   if (overlay.style.display !== 'none') {
-    // find which campaign is open by scanning the title
-    const title = document.getElementById('recip-mgr-title').textContent;
-    const idx = campaigns.findIndex(c => title.includes(c.name));
-    if (idx >= 0) openRecipientsManager(idx);
+    const q = (document.getElementById('recip-mgr-search')?.value || '').toLowerCase().trim();
+    renderRecipientsManagerList(q);
   }
   showToast(unsub ? '⛔ סומן כ"ביקש הסרה" — לא יתווסף להפצות עתידיות' : '✓ ההסרה בוטלה');
 }
