@@ -1283,7 +1283,8 @@ let filteredContacts = [];
 let selectedContact = null;
 let currentView = 'contacts';
 let activeLevel = '';
-let activeStatus = '';
+let activeStatus = ''; // legacy — replaced by activeStatusFilters
+let activeStatusFilters = new Set();
 let activeCampaignFilter = '';
 
 const GROUPS = {
@@ -1429,6 +1430,7 @@ async function switchGroup(group) {
   document.getElementById('empty-state').style.display = 'flex';
   renderLevelFilters();
   activeStatus = '';
+  activeStatusFilters = new Set();
   document.querySelectorAll('[data-status]').forEach(c => c.classList.toggle('active', c.dataset.status === ''));
   // Switch to contacts view
   setView('contacts', document.querySelector('.sidebar-btn[onclick*="contacts"]'));
@@ -1540,31 +1542,21 @@ function applyFilters() {
   filteredContacts = allContacts.filter(c => {
     if (activeLevel && !c.level.includes(activeLevel)) return false;
     if (city && c.city !== city) return false;
-    if (activeStatus === 'overdue') {
-      if (!c.followUpDate) return false;
-      if (c.followUpDate >= today()) return false;
-    } else if (activeStatus === 'today') {
-      if (c.followUpDate !== today()) return false;
-    } else if (activeStatus === 'no-followup') {
-      if (c.followUpDate) return false;
-    } else if (activeStatus === 'has-convo') {
-      if (!c.conversations || c.conversations.length === 0) return false;
-    } else if (activeStatus === 'performed') {
-      if (!c.performedBefore) return false;
-    } else if (activeStatus === 'has-email') {
-      if (!c.email && !c.schoolEmail) return false;
-    } else if (activeStatus === 'no-email') {
-      if (c.email || c.schoolEmail) return false;
-    } else if (activeStatus === 'has-mobile') {
-      if (!c.mobile) return false;
-    } else if (activeStatus === 'no-mobile') {
-      if (c.mobile) return false;
-    } else if (activeStatus === 'acquainted') {
-      if (!c.acquainted) return false;
-    } else if (activeStatus === 'relevant') {
-      if (c.isRelevant === false) return false;
-    } else if (activeStatus === 'not-relevant') {
-      if (c.isRelevant !== false) return false;
+    // Multi-select status filters (AND logic)
+    if (activeStatusFilters.size > 0) {
+      const f = activeStatusFilters;
+      if (f.has('overdue') && (!c.followUpDate || c.followUpDate >= today())) return false;
+      if (f.has('today') && c.followUpDate !== today()) return false;
+      if (f.has('no-followup') && c.followUpDate) return false;
+      if (f.has('has-convo') && (!c.conversations || c.conversations.length === 0)) return false;
+      if (f.has('performed') && !c.performedBefore) return false;
+      if (f.has('has-email') && !c.email && !c.schoolEmail) return false;
+      if (f.has('no-email') && (c.email || c.schoolEmail)) return false;
+      if (f.has('has-mobile') && !c.mobile) return false;
+      if (f.has('no-mobile') && c.mobile) return false;
+      if (f.has('acquainted') && !c.acquainted) return false;
+      if (f.has('relevant') && c.isRelevant === false) return false;
+      if (f.has('not-relevant') && c.isRelevant !== false) return false;
     }
     if (activeCampaignFilter) {
       const camp = campaigns.find(cp => cp.id === activeCampaignFilter);
@@ -1606,9 +1598,27 @@ function toggleLevelFilter(el, level) {
 }
 
 function toggleStatusFilter(el, status) {
-  document.querySelectorAll('[data-status]').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  activeStatus = status;
+  if (!status) {
+    // "הכל" — clear all
+    activeStatusFilters.clear();
+    document.querySelectorAll('[data-status]').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  } else {
+    // toggle this filter on/off
+    document.querySelector('[data-status=""]')?.classList.remove('active');
+    if (activeStatusFilters.has(status)) {
+      activeStatusFilters.delete(status);
+      el.classList.remove('active');
+    } else {
+      activeStatusFilters.add(status);
+      el.classList.add('active');
+    }
+    // if nothing selected, re-activate "הכל"
+    if (activeStatusFilters.size === 0) {
+      document.querySelector('[data-status=""]')?.classList.add('active');
+    }
+  }
+  activeStatus = activeStatusFilters.size === 1 ? [...activeStatusFilters][0] : '';
   applyFilters();
 }
 
@@ -3904,9 +3914,24 @@ function mobFilterLevel(el, level) {
 }
 
 function mobFilterStatus(el, status) {
-  document.querySelectorAll('[data-mob-status]').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
-  activeStatus = status;
+  if (!status) {
+    activeStatusFilters.clear();
+    document.querySelectorAll('[data-mob-status]').forEach(c => c.classList.remove('active'));
+    el.classList.add('active');
+  } else {
+    document.querySelector('[data-mob-status=""]')?.classList.remove('active');
+    if (activeStatusFilters.has(status)) {
+      activeStatusFilters.delete(status);
+      el.classList.remove('active');
+    } else {
+      activeStatusFilters.add(status);
+      el.classList.add('active');
+    }
+    if (activeStatusFilters.size === 0) {
+      document.querySelector('[data-mob-status=""]')?.classList.add('active');
+    }
+  }
+  activeStatus = activeStatusFilters.size === 1 ? [...activeStatusFilters][0] : '';
   applyFilters();
 }
 
