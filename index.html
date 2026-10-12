@@ -755,6 +755,10 @@
     <label>סטטוס מעקב</label>
     <div id="status-filters">
       <span class="filter-chip active" data-status="" onclick="toggleStatusFilter(this, '')">הכל</span>
+      <span class="filter-chip" data-status="has-email" onclick="toggleStatusFilter(this, 'has-email')">📧 יש מייל</span>
+      <span class="filter-chip" data-status="no-email" onclick="toggleStatusFilter(this, 'no-email')">📧 אין מייל</span>
+      <span class="filter-chip" data-status="has-mobile" onclick="toggleStatusFilter(this, 'has-mobile')">📱 יש נייד</span>
+      <span class="filter-chip" data-status="no-mobile" onclick="toggleStatusFilter(this, 'no-mobile')">📱 אין נייד</span>
       <span class="filter-chip" data-status="overdue" onclick="toggleStatusFilter(this, 'overdue')">⏰ באיחור</span>
       <span class="filter-chip" data-status="today" onclick="toggleStatusFilter(this, 'today')">📅 היום</span>
       <span class="filter-chip" data-status="no-followup" onclick="toggleStatusFilter(this, 'no-followup')">✅ ללא תזכורת</span>
@@ -1546,6 +1550,14 @@ function applyFilters() {
       if (!c.conversations || c.conversations.length === 0) return false;
     } else if (activeStatus === 'performed') {
       if (!c.performedBefore) return false;
+    } else if (activeStatus === 'has-email') {
+      if (!c.email && !c.schoolEmail) return false;
+    } else if (activeStatus === 'no-email') {
+      if (c.email || c.schoolEmail) return false;
+    } else if (activeStatus === 'has-mobile') {
+      if (!c.mobile) return false;
+    } else if (activeStatus === 'no-mobile') {
+      if (c.mobile) return false;
     } else if (activeStatus === 'relevant') {
       if (c.isRelevant === false) return false;
     } else if (activeStatus === 'not-relevant') {
@@ -3841,6 +3853,10 @@ function renderMobileFilterBar() {
   const sep = `<span style="display:inline-block;width:1px;height:20px;background:var(--border);margin:0 6px;vertical-align:middle"></span>`;
   bar.innerHTML = chips + sep +
     `<span class="filter-chip active" data-mob-status="" onclick="mobFilterStatus(this,'')">כל סטטוס</span>` +
+    `<span class="filter-chip" data-mob-status="has-email" onclick="mobFilterStatus(this,'has-email')">📧 יש מייל</span>` +
+    `<span class="filter-chip" data-mob-status="no-email" onclick="mobFilterStatus(this,'no-email')">📧 אין מייל</span>` +
+    `<span class="filter-chip" data-mob-status="has-mobile" onclick="mobFilterStatus(this,'has-mobile')">📱 יש נייד</span>` +
+    `<span class="filter-chip" data-mob-status="no-mobile" onclick="mobFilterStatus(this,'no-mobile')">📱 אין נייד</span>` +
     `<span class="filter-chip" data-mob-status="overdue" onclick="mobFilterStatus(this,'overdue')">⏰ באיחור</span>` +
     `<span class="filter-chip" data-mob-status="today" onclick="mobFilterStatus(this,'today')">📅 היום</span>` +
     `<span class="filter-chip" data-mob-status="has-convo" onclick="mobFilterStatus(this,'has-convo')">💬 היסטוריה</span>` +
