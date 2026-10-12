@@ -1097,6 +1097,8 @@
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
         <button class="btn btn-outline btn-sm" onclick="selectByFilterML('email')">📧 יש מייל</button>
         <button class="btn btn-outline btn-sm" onclick="selectByFilterML('mobile')">📱 יש נייד</button>
+        <button class="btn btn-outline btn-sm" onclick="selectByFilterML('acquainted')">🤝 יש היכרות</button>
+        <button class="btn btn-outline btn-sm" onclick="selectByFilterML('no-acquainted')">🤝 אין היכרות</button>
         <button class="btn btn-outline btn-sm" onclick="selectByFilterML('performed')">✓ הופענו בעבר</button>
         <select id="ml-level-select" onchange="selectByFilterML('level')" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);font-size:13px">
           <option value="">שלב חינוך...</option>
@@ -1166,6 +1168,8 @@
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('email')">📧 יש מייל</button>
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('mobile')">📱 יש נייד</button>
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('both')">📧+📱 שניהם</button>
+        <button class="btn btn-outline btn-sm" onclick="selectByFilter('acquainted')">🤝 יש היכרות</button>
+        <button class="btn btn-outline btn-sm" onclick="selectByFilter('no-acquainted')">🤝 אין היכרות</button>
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('performed')">✓ הופענו בעבר</button>
         <button class="btn btn-danger btn-sm" onclick="selectByFilter('none')">נקה הכל</button>
       </div>
@@ -3089,6 +3093,8 @@ function selectByFilter(filter) {
         if (filter === 'email' && c.email) campaignSelectedIds.add(c.id);
         else if (filter === 'mobile' && c.mobile) campaignSelectedIds.add(c.id);
         else if (filter === 'both' && c.email && c.mobile) campaignSelectedIds.add(c.id);
+        else if (filter === 'acquainted' && c.acquainted) campaignSelectedIds.add(c.id);
+        else if (filter === 'no-acquainted' && !c.acquainted) campaignSelectedIds.add(c.id);
         else if (filter === 'performed' && c.performedBefore) campaignSelectedIds.add(c.id);
       });
   }
@@ -3451,6 +3457,8 @@ function selectByFilterML(filter) {
       .forEach(c => {
         if (filter === 'email' && c.email) mlSelectedIds.add(c.id);
         else if (filter === 'mobile' && c.mobile) mlSelectedIds.add(c.id);
+        else if (filter === 'acquainted' && c.acquainted) mlSelectedIds.add(c.id);
+        else if (filter === 'no-acquainted' && !c.acquainted) mlSelectedIds.add(c.id);
         else if (filter === 'performed' && c.performedBefore) mlSelectedIds.add(c.id);
         else if (filter === 'level' && level && (c.level||'').includes(level)) mlSelectedIds.add(c.id);
       });
