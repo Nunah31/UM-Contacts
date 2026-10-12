@@ -3107,19 +3107,30 @@ function closeCampaignModal() { document.getElementById('campaign-modal-overlay'
 function closeCampaignModalIfOverlay(e) { if (e.target.id === 'campaign-modal-overlay') closeCampaignModal(); }
 function closeSendOverlayIfOverlay(e) { if (e.target.id === 'campaign-send-overlay') e.target.style.display = 'none'; }
 
+function contactMatchesFilter(c, filter) {
+  if (filter === 'email') return !!c.email;
+  if (filter === 'mobile') return !!c.mobile;
+  if (filter === 'both') return !!(c.email && c.mobile);
+  if (filter === 'acquainted') return !!c.acquainted;
+  if (filter === 'no-acquainted') return !c.acquainted;
+  if (filter === 'performed') return !!c.performedBefore;
+  return true;
+}
+
 function selectByFilter(filter) {
   if (filter === 'none') { campaignSelectedIds.clear(); }
   else {
-    allContacts
-      .filter(c => !cpLevelFilter || (c.level || '').includes(cpLevelFilter))
-      .forEach(c => {
-        if (filter === 'email' && c.email) campaignSelectedIds.add(c.id);
-        else if (filter === 'mobile' && c.mobile) campaignSelectedIds.add(c.id);
-        else if (filter === 'both' && c.email && c.mobile) campaignSelectedIds.add(c.id);
-        else if (filter === 'acquainted' && c.acquainted) campaignSelectedIds.add(c.id);
-        else if (filter === 'no-acquainted' && !c.acquainted) campaignSelectedIds.add(c.id);
-        else if (filter === 'performed' && c.performedBefore) campaignSelectedIds.add(c.id);
-      });
+    const pool = allContacts.filter(c => !cpLevelFilter || (c.level || '').includes(cpLevelFilter));
+    if (campaignSelectedIds.size === 0) {
+      // nothing selected yet — start fresh from all matching
+      pool.forEach(c => { if (contactMatchesFilter(c, filter)) campaignSelectedIds.add(c.id); });
+    } else {
+      // already have a selection — narrow it down (AND)
+      for (const id of [...campaignSelectedIds]) {
+        const c = allContacts.find(x => x.id === id);
+        if (!c || !contactMatchesFilter(c, filter)) campaignSelectedIds.delete(id);
+      }
+    }
   }
   renderCampaignRecipients();
 }
@@ -3514,17 +3525,19 @@ function closeListModal() { document.getElementById('list-modal-overlay').style.
 function selectByFilterML(filter) {
   const level = document.getElementById('ml-level-select').value;
   if (filter === 'none') { mlSelectedIds.clear(); }
-  else {
-    allContacts
-      .filter(c => !level || (c.level||'').includes(level))
-      .forEach(c => {
-        if (filter === 'email' && c.email) mlSelectedIds.add(c.id);
-        else if (filter === 'mobile' && c.mobile) mlSelectedIds.add(c.id);
-        else if (filter === 'acquainted' && c.acquainted) mlSelectedIds.add(c.id);
-        else if (filter === 'no-acquainted' && !c.acquainted) mlSelectedIds.add(c.id);
-        else if (filter === 'performed' && c.performedBefore) mlSelectedIds.add(c.id);
-        else if (filter === 'level' && level && (c.level||'').includes(level)) mlSelectedIds.add(c.id);
-      });
+  else if (filter === 'level') {
+    // level always adds fresh
+    allContacts.filter(c => level && (c.level||'').includes(level)).forEach(c => mlSelectedIds.add(c.id));
+  } else {
+    const pool = allContacts.filter(c => !level || (c.level||'').includes(level));
+    if (mlSelectedIds.size === 0) {
+      pool.forEach(c => { if (contactMatchesFilter(c, filter)) mlSelectedIds.add(c.id); });
+    } else {
+      for (const id of [...mlSelectedIds]) {
+        const c = allContacts.find(x => x.id === id);
+        if (!c || !contactMatchesFilter(c, filter)) mlSelectedIds.delete(id);
+      }
+    }
   }
   renderMLRecipients();
 }
