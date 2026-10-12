@@ -1152,8 +1152,14 @@
         <label style="margin:0">📝 הודעה לשליחה</label>
         <button type="button" class="btn btn-outline btn-sm" onclick="saveMsgTemplate()" style="font-size:12px">💾 שמרי כתבנית</button>
       </div>
-      <textarea id="cp-message" style="min-height:140px" placeholder="שלום,&#10;אנחנו שמחים להציג את המופע שלנו לשנת הלימודים 2026...&#10;&#10;לברושור: {ברושור}&#10;לצפייה במופע: {סרטון}"></textarea>
-      <div style="font-size:12px;color:var(--muted);margin-top:4px">השתמשי ב-{ברושור} ו-{סרטון} כדי להכניס את הקישורים אוטומטית</div>
+      <textarea id="cp-message" style="min-height:140px" placeholder="שלום {שם},&#10;אנחנו שמחים להציג את המופע שלנו לשנת הלימודים 2026...&#10;&#10;לברושור: {ברושור}&#10;לצפייה במופע: {סרטון}"></textarea>
+      <div style="font-size:12px;color:var(--muted);margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <span>הכניסי:</span>
+        <button type="button" class="btn btn-outline btn-sm" style="font-size:11px" onclick="insertPlaceholder('{שם}')">👤 {שם}</button>
+        <button type="button" class="btn btn-outline btn-sm" style="font-size:11px" onclick="insertPlaceholder('{ברושור}')">📄 {ברושור}</button>
+        <button type="button" class="btn btn-outline btn-sm" style="font-size:11px" onclick="insertPlaceholder('{סרטון}')">🎬 {סרטון}</button>
+        <span style="color:#e67e22">⚠️ {שם} = מייל אישי לכל נמען בנפרד</span>
+      </div>
     </div>
 
     <div style="background:#f4f6f9;border-radius:10px;padding:16px;margin:16px 0">
@@ -1206,6 +1212,23 @@
     <div id="send-actions" style="display:flex;flex-direction:column;gap:12px"></div>
     <div style="margin-top:20px;text-align:left">
       <button class="btn btn-outline" onclick="document.getElementById('campaign-send-overlay').style.display='none'">סגירה</button>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONAL SEND MODAL -->
+<div id="personal-send-overlay" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1100;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:540px;max-width:96vw;max-height:88vh;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.3);display:flex;flex-direction:column;">
+    <div style="padding:20px 24px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h3 style="font-size:17px;font-weight:700">👤 שליחה אישית — לחצי על כל נמען בנפרד</h3>
+        <button onclick="document.getElementById('personal-send-overlay').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">×</button>
+      </div>
+      <p style="font-size:13px;color:var(--orange);margin-top:6px">ההודעה מכילה {שם} — נפתח מייל נפרד לכל איש קשר עם שמם האישי</p>
+    </div>
+    <div id="personal-send-list" style="overflow-y:auto;flex:1;padding:8px 0"></div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;text-align:center">
+      <button class="btn btn-outline" onclick="document.getElementById('personal-send-overlay').style.display='none'">סגירה</button>
     </div>
   </div>
 </div>
@@ -3163,6 +3186,10 @@ function saveCampaign(openEmail) {
     if (openEmail) {
       const camp = campaigns[savedIdx];
       const recipients = (camp.recipients || []).map(id => allContacts.find(c => c.id === id)).filter(Boolean);
+      if ((camp.message || '').includes('{שם}')) {
+        openPersonalSend(camp, recipients);
+        return;
+      }
       const withEmail = recipients.filter(c => c.email);
       if (withEmail.length === 0) {
         showToast('אין נמענים עם מייל — בחרי נמענים בהפצה');
@@ -3341,10 +3368,46 @@ function clearCampaignFilter() {
   applyFilters();
 }
 
-function buildMessage(template, camp) {
-  return template
+function buildMessage(template, camp, contact) {
+  let msg = template
     .replace(/{ברושור}/g, camp.brochure || '')
     .replace(/{סרטון}/g, camp.video || '');
+  if (contact) {
+    const name = contact.contactName || contact.school || contact.city || '';
+    msg = msg.replace(/{שם}/g, name);
+  }
+  return msg;
+}
+
+function openPersonalSend(camp, recipients) {
+  const withEmail = recipients.filter(c => c.email);
+  if (withEmail.length === 0) { showToast('אין נמענים עם מייל'); return; }
+  const el = document.getElementById('personal-send-list');
+  el.innerHTML = withEmail.map(c => {
+    const msg = buildMessage(camp.message || '', camp, c);
+    const mailtoUrl = 'mailto:' + encodeURIComponent(c.email)
+      + '?subject=' + encodeURIComponent(camp.name)
+      + '&body=' + encodeURIComponent(msg);
+    const name = c.contactName || c.school || c.city;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid #f0f2f5">
+      <div style="flex:1">
+        <div style="font-weight:600;font-size:14px">${escHtml(name)}</div>
+        <div style="font-size:12px;color:var(--muted)">${escHtml(c.email)}</div>
+      </div>
+      <a href="${mailtoUrl}" class="btn btn-primary btn-sm" style="text-decoration:none;white-space:nowrap">📧 פתחי מייל</a>
+    </div>`;
+  }).join('');
+  document.getElementById('personal-send-overlay').style.display = 'flex';
+}
+
+function insertPlaceholder(text) {
+  const ta = document.getElementById('cp-message');
+  if (!ta) return;
+  const start = ta.selectionStart;
+  const end = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + text.length;
+  ta.focus();
 }
 
 function openSendModal(idx) {
