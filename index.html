@@ -2067,9 +2067,10 @@ function deleteCurrentContact() {
 
 function markPerformed() {
   selectedContact.performedBefore = true;
+  selectedContact.acquainted = true;
   saveToStorage();
   showContactDetail();
-  showToast('סומן כ"הופענו בעבר" ✓');
+  showToast('סומן כ"הופענו בעבר" + "יש היכרות" ✓');
 }
 
 function toggleAcquainted(val) {
