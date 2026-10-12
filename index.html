@@ -764,6 +764,7 @@
       <span class="filter-chip" data-status="no-followup" onclick="toggleStatusFilter(this, 'no-followup')">✅ ללא תזכורת</span>
       <span class="filter-chip" data-status="has-convo" onclick="toggleStatusFilter(this, 'has-convo')">💬 עם היסטוריה</span>
       <span class="filter-chip" data-status="performed" onclick="toggleStatusFilter(this, 'performed')">✓ הופענו בעבר</span>
+      <span class="filter-chip" data-status="acquainted" onclick="toggleStatusFilter(this, 'acquainted')">🤝 יש היכרות</span>
     </div>
   </div>
 
@@ -1558,6 +1559,8 @@ function applyFilters() {
       if (!c.mobile) return false;
     } else if (activeStatus === 'no-mobile') {
       if (c.mobile) return false;
+    } else if (activeStatus === 'acquainted') {
+      if (!c.acquainted) return false;
     } else if (activeStatus === 'relevant') {
       if (c.isRelevant === false) return false;
     } else if (activeStatus === 'not-relevant') {
@@ -1760,6 +1763,7 @@ function showContactDetail() {
           ${c.city ? escHtml(c.city) : ''}
           ${c.level ? `<span class="level-tag ${levelClass}" style="margin-right:8px">${escHtml(c.level)}</span>` : ''}
           ${c.performedBefore ? '<span class="level-tag" style="background:#d4edda;color:#155724;margin-right:6px">✓ הופענו בעבר</span>' : ''}
+          ${c.acquainted ? '<span class="level-tag" style="background:#e8d5f5;color:#6a1b9a;margin-right:6px">🤝 יש היכרות</span>' : ''}
           ${c.unsubscribed ? '<span class="level-tag" style="background:#f8d7da;color:#721c24;margin-right:6px">⛔ ביקש הסרה</span>' : ''}
           ${c.source === 'leads' ? '<span class="level-tag" style="background:#d1ecf1;color:#0c5460">ליד</span>' : ''}
         </div>
@@ -1782,6 +1786,9 @@ function showContactDetail() {
       <button class="btn btn-outline" onclick="setFollowUp()">🔔 קביעת תזכורת</button>
       <button class="btn btn-outline" onclick="editContact()">✏️ עריכת פרטים</button>
       ${c.performedBefore ? '' : '<button class="btn btn-success btn-sm" onclick="markPerformed()">✓ סמני הופענו</button>'}
+      ${c.acquainted
+        ? '<button class="btn btn-sm" style="background:#f3e5ff;color:#6a1b9a;border:1px solid #ce93d8" onclick="toggleAcquainted(false)">🤝 יש היכרות ✓</button>'
+        : '<button class="btn btn-sm" style="background:#f9f9f9;color:#6a1b9a;border:1px solid #ce93d8" onclick="toggleAcquainted(true)">🤝 סמני היכרות</button>'}
       <button class="btn btn-outline" onclick="openQuoteModal()" style="background:#fff8e1;border-color:#f0a500;color:#b37a00">📄 הצעת מחיר</button>
       <button class="btn btn-outline" onclick="openIntroEmailModal()" style="background:#e8f4fd;border-color:#2c6fad;color:#1a4a7a">📧 מייל היכרות</button>
       <button class="btn btn-danger btn-sm" onclick="deleteCurrentContact()" title="מחיקת קשר">🗑️ מחיקה</button>
@@ -2063,6 +2070,13 @@ function markPerformed() {
   saveToStorage();
   showContactDetail();
   showToast('סומן כ"הופענו בעבר" ✓');
+}
+
+function toggleAcquainted(val) {
+  selectedContact.acquainted = val;
+  saveToStorage();
+  showContactDetail();
+  showToast(val ? '🤝 סומן "יש היכרות" ✓' : 'ההיכרות הוסרה');
 }
 
 // =================== EDIT CONTACT ===================
@@ -3860,7 +3874,8 @@ function renderMobileFilterBar() {
     `<span class="filter-chip" data-mob-status="overdue" onclick="mobFilterStatus(this,'overdue')">⏰ באיחור</span>` +
     `<span class="filter-chip" data-mob-status="today" onclick="mobFilterStatus(this,'today')">📅 היום</span>` +
     `<span class="filter-chip" data-mob-status="has-convo" onclick="mobFilterStatus(this,'has-convo')">💬 היסטוריה</span>` +
-    `<span class="filter-chip" data-mob-status="performed" onclick="mobFilterStatus(this,'performed')">✓ הופענו</span>`;
+    `<span class="filter-chip" data-mob-status="performed" onclick="mobFilterStatus(this,'performed')">✓ הופענו</span>` +
+    `<span class="filter-chip" data-mob-status="acquainted" onclick="mobFilterStatus(this,'acquainted')">🤝 היכרות</span>`;
 }
 
 async function mobileSwitchGroup(group, btn) {
