@@ -3547,17 +3547,27 @@ function renderMLRecipients() {
   const level = document.getElementById('ml-level-select')?.value || '';
   const list = allContacts.filter(c =>
     (!level || (c.level||'').includes(level)) &&
-    (!search || (c.school+c.city+c.contactName).toLowerCase().includes(search))
+    (!search || (c.school+c.city+(c.contactName||'')).toLowerCase().includes(search))
   );
+  // Selected contacts float to the top
+  const selected = list.filter(c => mlSelectedIds.has(c.id));
+  const rest = list.filter(c => !mlSelectedIds.has(c.id));
+  const sorted = [...selected, ...rest];
   document.getElementById('ml-selected-count').textContent = mlSelectedIds.size;
-  document.getElementById('ml-recipients').innerHTML = list.slice(0,200).map(c => `
-    <label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f0f2f5;cursor:pointer;font-size:14px">
-      <input type="checkbox" ${mlSelectedIds.has(c.id)?'checked':''} onchange="mlToggle('${c.id}',this.checked)">
+  const renderRow = c => {
+    const isSel = mlSelectedIds.has(c.id);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #f0f2f5;cursor:pointer;font-size:14px;${isSel?'background:#f0fff4;':''}">
+      <input type="checkbox" ${isSel?'checked':''} onchange="mlToggle('${c.id}',this.checked)">
       <div style="flex:1">
         <div style="font-weight:600">${escHtml(c.school)}</div>
         <div style="font-size:12px;color:var(--muted)">${escHtml(c.city)} · ${escHtml(c.level||'')} ${c.email?'📧':''}${c.mobile?'📱':''}</div>
       </div>
-    </label>`).join('') + (list.length>200?`<div style="padding:8px 12px;font-size:12px;color:var(--muted)">מציג 200 מתוך ${list.length}</div>`:'');
+    </label>`;
+  };
+  document.getElementById('ml-recipients').innerHTML =
+    (selected.length > 0 ? `<div style="padding:4px 12px;font-size:11px;color:var(--green);font-weight:700;background:#f0fff4;border-bottom:2px solid #c3e6cb">✓ ${selected.length} מסומנים</div>` : '') +
+    sorted.slice(0, 200).map(renderRow).join('') +
+    (list.length > 200 ? `<div style="padding:8px 12px;font-size:12px;color:var(--muted)">מציג 200 מתוך ${list.length}</div>` : '');
 }
 
 function mlToggle(id, checked) {
