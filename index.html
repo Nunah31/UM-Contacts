@@ -1779,12 +1779,12 @@ function showContactDetail() {
     </div>`;
   }
 
-  const sortedConvos = [...(c.conversations || [])].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const sortedConvos = [...(c.conversations || [])].map((conv, origIdx) => ({...conv, _origIdx: origIdx})).sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   const convHtml = sortedConvos.map((conv, i) => `
-    <div class="conv-entry" id="conv-entry-${i}" data-conv-idx="${i}">
+    <div class="conv-entry" id="conv-entry-${i}" data-conv-idx="${conv._origIdx}">
       <div style="display:flex;gap:4px;position:absolute;top:8px;left:8px">
-        <button class="delete-conv" style="position:static" data-action="edit" data-idx="${i}" title="עריכה">✏️</button>
-        <button class="delete-conv" style="position:static" data-action="delete" data-idx="${i}" title="מחיקה">✕</button>
+        <button class="delete-conv" style="position:static" data-action="edit" data-idx="${conv._origIdx}" title="עריכה">✏️</button>
+        <button class="delete-conv" style="position:static" data-action="delete" data-idx="${conv._origIdx}" title="מחיקה">✕</button>
       </div>
       <div class="conv-date">${formatDate(conv.date)} ${conv.status ? ' · ' + statusLabel(conv.status) : ''}</div>
       <div class="conv-notes">${escHtml(conv.notes)}</div>
