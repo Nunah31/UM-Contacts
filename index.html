@@ -2424,9 +2424,19 @@ function applyReschedule(rowId, contactId, type, convIdx) {
       c.conversations[convIdx].followUpTime = newTime || null;
     }
   } else {
+    const oldDate = c.followUpDate;
     c.followUpDate = newDate;
     c.followUpTime = newTime || null;
     c.followUpReason = newReason || null;
+    // clear any conversation-level followups that matched the old date (they were shown as one)
+    if (oldDate && c.conversations) {
+      c.conversations.forEach(cv => {
+        if (cv.followUpDate === oldDate) {
+          cv.followUpDate = null;
+          cv.followUpTime = null;
+        }
+      });
+    }
   }
   saveToStorage();
   renderReminders();
