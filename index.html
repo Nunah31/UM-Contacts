@@ -682,6 +682,7 @@
   <button class="mob-group-btn active" data-group="schools" onclick="mobileSwitchGroup('schools',this)" style="background:#1e4f7e">🏫 בתי ספר</button>
   <button class="mob-group-btn" data-group="matnasim" onclick="mobileSwitchGroup('matnasim',this)">🏢 מתנ"סים</button>
   <button class="mob-group-btn" data-group="gimlaaim" onclick="mobileSwitchGroup('gimlaaim',this)">🧓 גימלאים</button>
+  <button class="mob-group-btn" data-group="saltarbut" onclick="mobileSwitchGroup('saltarbut',this)">🎭 סל תרבות</button>
 </div>
 
 <!-- MOBILE SEARCH -->
@@ -1179,14 +1180,7 @@
         <button class="btn btn-outline btn-sm" onclick="selectByFilter('performed')">✓ הופענו בעבר</button>
         <button class="btn btn-danger btn-sm" onclick="selectByFilter('none')">נקה הכל</button>
       </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:8px;background:#f0f4f8;border-radius:8px;align-items:center">
-        <span style="font-size:13px;color:var(--muted);font-weight:600">שלב חינוך:</span>
-        <button class="btn btn-outline btn-sm cp-level-btn active" data-level="" onclick="setCpLevel(this,'')">הכל</button>
-        <button class="btn btn-outline btn-sm cp-level-btn" data-level="יסודי" onclick="setCpLevel(this,'יסודי')">יסודי</button>
-        <button class="btn btn-outline btn-sm cp-level-btn" data-level="חטיבה" onclick="setCpLevel(this,'חטיבה')">חטיבה</button>
-        <button class="btn btn-outline btn-sm cp-level-btn" data-level="תיכון" onclick="setCpLevel(this,'תיכון')">תיכון</button>
-        <button class="btn btn-outline btn-sm cp-level-btn" data-level="שש שנתי" onclick="setCpLevel(this,'שש שנתי')">שש שנתי</button>
-      </div>
+      <div id="cp-level-bar" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;padding:8px;background:#f0f4f8;border-radius:8px;align-items:center"></div>
       <div style="display:flex;gap:10px;margin-bottom:8px;font-size:13px;color:var(--muted)">
         <span id="cp-selected-count">0 נמענים נבחרו</span>
         <span>· <span id="cp-email-count">0</span> עם מייל</span>
@@ -1238,7 +1232,7 @@
   <div style="background:#fff;border-radius:14px;padding:28px;width:560px;max-width:95vw;max-height:90vh;overflow-y:auto;direction:rtl;box-shadow:0 8px 40px rgba(0,0,0,.2);">
     <h3 style="margin-bottom:18px;font-size:18px">➕ הוספת קשר חדש</h3>
     <div class="form-row">
-      <div class="form-group"><label>שם בית הספר *</label><input id="nc-school" placeholder="שם ביה&quot;ס..."></div>
+      <div class="form-group"><label>שם המוסד *</label><input id="nc-school" placeholder="שם המוסד..."></div>
       <div class="form-group"><label>עיר *</label><input id="nc-city" placeholder="עיר..."></div>
     </div>
     <div class="form-row">
@@ -1249,12 +1243,15 @@
           <option value="חטיבה">חטיבה</option>
           <option value="תיכון">תיכון</option>
           <option value="שש שנתי">שש שנתי</option>
+          <option value="מתנס">מתנס</option>
+          <option value="גימלאים">גימלאים</option>
+          <option value="סל תרבות ארצי">סל תרבות ארצי</option>
         </select>
       </div>
       <div class="form-group"><label>כתובת</label><input id="nc-address" placeholder="כתובת..."></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>טלפון ביה"ס</label><input id="nc-phone" placeholder="09-..."></div>
+      <div class="form-group"><label>טלפון</label><input id="nc-phone" placeholder="09-..."></div>
       <div class="form-group"><label>נייד איש קשר</label><input id="nc-mobile" placeholder="050-..."></div>
     </div>
     <div class="form-row">
@@ -1315,9 +1312,10 @@ let activeStatusFilters = new Set();
 let activeCampaignFilter = '';
 
 const GROUPS = {
-  schools:  { label: '🏫 בתי ספר',  key: 'um_contacts_v4',  file: 'contacts_data.json',  color: '#1a3a5c', processRaw: true },
-  matnasim: { label: '🏛️ מתנ"סים', key: 'um_matnasim_v1',  file: 'matnasim_data.json',  color: '#7a3355', processRaw: false },
-  gimlaaim: { label: '👴 גימלאים',  key: 'um_gimlaaim_v1', file: 'gimlaaim_data.json',  color: '#4a2a6e', processRaw: false },
+  schools:   { label: '🏫 בתי ספר',    key: 'um_contacts_v4',   file: 'contacts_data.json',   color: '#1a3a5c', processRaw: true },
+  matnasim:  { label: '🏛️ מתנ"סים',  key: 'um_matnasim_v1',   file: 'matnasim_data.json',   color: '#7a3355', processRaw: false },
+  gimlaaim:  { label: '👴 גימלאים',   key: 'um_gimlaaim_v1',   file: 'gimlaaim_data.json',   color: '#4a2a6e', processRaw: false },
+  saltarbut: { label: '🎭 סל תרבות',  key: 'um_saltarbut_v1',  file: 'saltarbut_data.json',  color: '#1a6b4a', processRaw: false },
 };
 let activeGroup = localStorage.getItem('um_active_group') || 'schools';
 function currentStorageKey() { return GROUPS[activeGroup].key; }
@@ -1654,9 +1652,10 @@ function renderLevelFilters() {
   if (!sec) return;
   activeLevel = '';
   const groups = {
-    schools:  { label: 'שלב בחינוך',  chips: [['','הכל'],['יסודי','יסודי'],['חטיבה','חטיבה'],['תיכון','תיכון'],['שש שנתי','שש שנתי']] },
-    matnasim: { label: 'תחום עניין',   chips: [['','הכל'],['מבוגרים','מבוגרים'],['נוער','נוער'],['ילדים','ילדים'],['גימלאים','גימלאים'],['הכל','כל הגילאים']] },
-    gimlaaim: { label: 'תחום עניין',   chips: [['','הכל'],['מופעי קונספט','קונספט'],['מופעי בוקר','מופעי בוקר'],['תקציב נמוך','תקציב נמוך']] },
+    schools:   { label: 'שלב בחינוך',  chips: [['','הכל'],['יסודי','יסודי'],['חטיבה','חטיבה'],['תיכון','תיכון'],['שש שנתי','שש שנתי'],['מתנס','מתנס'],['גימלאים','גימלאים'],['סל תרבות ארצי','סל תרבות ארצי']] },
+    matnasim:  { label: 'תחום עניין',   chips: [['','הכל'],['מבוגרים','מבוגרים'],['נוער','נוער'],['ילדים','ילדים'],['גימלאים','גימלאים'],['הכל','כל הגילאים']] },
+    gimlaaim:  { label: 'תחום עניין',   chips: [['','הכל'],['מופעי קונספט','קונספט'],['מופעי בוקר','מופעי בוקר'],['תקציב נמוך','תקציב נמוך']] },
+    saltarbut: { label: 'אזור',         chips: [['','הכל'],['מרכז','מרכז'],['צפון','צפון'],['דרום','דרום'],['חיפה','חיפה'],['שרון','שרון'],['ירושלים/יו"ש','ירושלים/יו"ש'],['ארצי','ארצי']] },
   };
   const g = groups[activeGroup] || groups.schools;
   sec.innerHTML = `
@@ -1847,7 +1846,7 @@ function showContactDetail() {
     <div class="card">
       <h3>פרטי קשר</h3>
       <div class="info-grid">
-        <div class="info-item"><label>${activeGroup === 'schools' ? 'שם בית הספר' : activeGroup === 'matnasim' ? 'שם מתנ"ס' : 'שם המוסד'}</label><div class="value">${escHtml(c.school || c.city || '—')}</div></div>
+        <div class="info-item"><label>${activeGroup === 'matnasim' ? 'שם מתנ"ס' : 'שם המוסד'}</label><div class="value">${escHtml(c.school || c.city || '—')}</div></div>
         <div class="info-item"><label>עיר</label><div class="value">${escHtml(c.city)}</div></div>
         ${activeGroup === 'schools' ? `
         <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
@@ -2125,17 +2124,21 @@ function editContact() {
   const isMat = activeGroup === 'matnasim';
   const isGim = activeGroup === 'gimlaaim';
 
-  const schoolLabel    = isSch ? 'שם בית הספר' : 'שם המוסד';
-  const phoneLabel     = isSch ? 'טלפון ביה"ס'  : 'טלפון משרד';
+  const schoolLabel    = 'שם המוסד';
+  const phoneLabel     = 'טלפון';
   const schEmailLabel  = isSch ? 'מייל בי"ס'    : 'מייל משרד';
-  const levelLabel     = isSch ? 'שלב בחינוך'   : 'תחום עניין';
+  const levelLabel     = isSch ? 'שלב בחינוך'   : activeGroup === 'saltarbut' ? 'אזור' : 'תחום עניין';
 
+  const isST = activeGroup === 'saltarbut';
   const levelOptions = isSch
     ? `<option value="" ${!c.level?'selected':''}>---</option>
-       <option value="יסודי"    ${c.level==='יסודי'?'selected':''}>יסודי</option>
-       <option value="חטיבה"   ${c.level==='חטיבה'?'selected':''}>חטיבה</option>
-       <option value="תיכון"   ${c.level==='תיכון'?'selected':''}>תיכון</option>
-       <option value="שש שנתי" ${c.level==='שש שנתי'?'selected':''}>שש שנתי</option>`
+       <option value="יסודי"           ${c.level==='יסודי'?'selected':''}>יסודי</option>
+       <option value="חטיבה"           ${c.level==='חטיבה'?'selected':''}>חטיבה</option>
+       <option value="תיכון"           ${c.level==='תיכון'?'selected':''}>תיכון</option>
+       <option value="שש שנתי"         ${c.level==='שש שנתי'?'selected':''}>שש שנתי</option>
+       <option value="מתנס"            ${c.level==='מתנס'?'selected':''}>מתנס</option>
+       <option value="גימלאים"         ${c.level==='גימלאים'?'selected':''}>גימלאים</option>
+       <option value="סל תרבות ארצי"   ${c.level==='סל תרבות ארצי'?'selected':''}>סל תרבות ארצי</option>`
     : isMat
     ? `<option value="" ${!c.level?'selected':''}>---</option>
        <option value="מבוגרים"  ${c.level==='מבוגרים'?'selected':''}>מבוגרים</option>
@@ -2143,6 +2146,15 @@ function editContact() {
        <option value="ילדים"    ${c.level==='ילדים'?'selected':''}>ילדים</option>
        <option value="גימלאים"  ${c.level==='גימלאים'?'selected':''}>גימלאים</option>
        <option value="הכל"      ${c.level==='הכל'?'selected':''}>הכל</option>`
+    : isST
+    ? `<option value="" ${!c.level?'selected':''}>---</option>
+       <option value="מרכז"         ${c.level==='מרכז'?'selected':''}>מרכז</option>
+       <option value="צפון"         ${c.level==='צפון'?'selected':''}>צפון</option>
+       <option value="דרום"         ${c.level==='דרום'?'selected':''}>דרום</option>
+       <option value="חיפה"         ${c.level==='חיפה'?'selected':''}>חיפה</option>
+       <option value="שרון"         ${c.level==='שרון'?'selected':''}>שרון</option>
+       <option value="ירושלים/יו&quot;ש" ${c.level==='ירושלים/יו"ש'?'selected':''}>ירושלים/יו"ש</option>
+       <option value="ארצי"         ${c.level==='ארצי'?'selected':''}>ארצי</option>`
     : `<option value="" ${!c.level?'selected':''}>---</option>
        <option value="מופעי קונספט" ${c.level==='מופעי קונספט'?'selected':''}>מופעי קונספט</option>
        <option value="מופעי בוקר"   ${c.level==='מופעי בוקר'?'selected':''}>מופעי בוקר</option>
@@ -3086,6 +3098,21 @@ function populateListsDropdown() {
     mailingLists.map(ml => `<option value="${ml.id}">${escHtml(ml.name)} (${(ml.contacts||[]).length})</option>`).join('');
 }
 
+function renderCpLevelBar() {
+  const bar = document.getElementById('cp-level-bar');
+  if (!bar) return;
+  const levelDefs = {
+    schools:   { label: 'שלב חינוך', chips: ['','יסודי','חטיבה','תיכון','שש שנתי','מתנס','גימלאים','סל תרבות ארצי'] },
+    matnasim:  { label: 'תחום',      chips: ['','מבוגרים','נוער','ילדים','גימלאים','הכל'] },
+    gimlaaim:  { label: 'סוג',       chips: ['','מופעי קונספט','מופעי בוקר','תקציב נמוך'] },
+    saltarbut: { label: 'אזור',      chips: ['','מרכז','צפון','דרום','חיפה','שרון','ירושלים/יו"ש','ארצי'] },
+  };
+  const def = levelDefs[activeGroup] || levelDefs.schools;
+  bar.innerHTML = `<span style="font-size:13px;color:var(--muted);font-weight:600">${def.label}:</span>` +
+    def.chips.map((v,i) => `<button class="btn btn-outline btn-sm cp-level-btn${i===0?' active':''}" data-level="${escHtml(v)}" onclick="setCpLevel(this,'${v.replace(/'/g,"\\'")}')">` +
+      (v || 'הכל') + `</button>`).join('');
+}
+
 function openNewCampaign() {
   editingCampaignIdx = null;
   cpLevelFilter = '';
@@ -3097,7 +3124,7 @@ function openNewCampaign() {
   document.getElementById('cp-brochure-preview').style.display = 'none';
   campaignSelectedIds = new Set();
   cpLevelFilter = '';
-  document.querySelectorAll('.cp-level-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+  renderCpLevelBar();
   renderCampaignRecipients();
   populateListsDropdown();
   document.getElementById('campaign-modal-overlay').style.display = 'flex';
@@ -3273,6 +3300,8 @@ function editCampaign(idx) {
   document.getElementById('cp-video').value = c.video || '';
   document.getElementById('cp-message').value = c.message || '';
   campaignSelectedIds = new Set(c.recipients || []);
+  cpLevelFilter = '';
+  renderCpLevelBar();
   renderCampaignRecipients();
   document.getElementById('campaign-modal-overlay').style.display = 'flex';
 }
@@ -4200,7 +4229,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=35').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=36').catch(() => {});
   });
 }
 
