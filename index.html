@@ -732,6 +732,7 @@
     <button class="group-btn active" data-group="schools" onclick="switchGroup('schools')">🏫 בתי ספר</button>
     <button class="group-btn" data-group="matnasim" onclick="switchGroup('matnasim')">🏛️ מתנ"סים</button>
     <button class="group-btn" data-group="gimlaaim" onclick="switchGroup('gimlaaim')">👴 גימלאים</button>
+    <button class="group-btn" data-group="saltarbut" onclick="switchGroup('saltarbut')">🎭 סל תרבות</button>
   </div>
 
   <div class="sidebar-section" style="position:relative">
@@ -2926,7 +2927,7 @@ document.addEventListener('keydown', e => {
 const CAMPAIGNS_KEY = 'um_campaigns_v1';
 function loadCampaigns() {
   // Merge all per-group keys back into the global key (cleanup from previous version)
-  ['schools','matnasim','gimlaaim'].forEach(g => {
+  ['schools','matnasim','gimlaaim','saltarbut'].forEach(g => {
     const perGroup = localStorage.getItem('um_campaigns_' + g);
     if (perGroup) {
       try {
@@ -3378,7 +3379,7 @@ function toggleUnsubscribed(contactId, unsub) {
     saveToStorage();
   }
   // Also check other groups
-  ['schools','matnasim','gimlaaim'].filter(g => g !== activeGroup).forEach(g => {
+  ['schools','matnasim','gimlaaim','saltarbut'].filter(g => g !== activeGroup).forEach(g => {
     const key = g === 'schools' ? 'um_contacts_v4' : 'um_' + g + '_v1';
     try {
       const arr = JSON.parse(localStorage.getItem(key) || '[]');
