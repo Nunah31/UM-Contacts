@@ -512,12 +512,13 @@
     background: #1a2535;
     z-index: 99;
     padding: 6px 10px;
-    gap: 8px;
+    gap: 6px;
     justify-content: center;
+    flex-wrap: wrap;
     border-bottom: 1px solid #2e3f55;
   }
   .mob-group-btn {
-    flex: 1; max-width: 110px;
+    flex: 0 0 calc(50% - 6px); max-width: calc(50% - 6px);
     padding: 5px 4px;
     border-radius: 8px;
     border: 1.5px solid #2e3f55;
@@ -562,14 +563,14 @@
     #main {
       flex-direction: column;
       position: fixed;
-      top: 150px;
+      top: 192px;
       bottom: 68px;
       left: 0; right: 0;
       overflow: hidden;
     }
 
     #view-reminders, #view-duplicates, #view-stats {
-      top: 150px !important;
+      top: 192px !important;
     }
 
     /* LIST PANEL — full screen, scrollable */
@@ -621,7 +622,7 @@
     .secondary-view,
     .secondary-view.active {
       position: fixed !important;
-      top: 150px !important; bottom: 68px !important;
+      top: 192px !important; bottom: 68px !important;
       left: 0 !important; right: 0 !important;
       max-width: 100vw !important;
       background: var(--bg);
@@ -681,8 +682,8 @@
 <div id="mobile-group-bar">
   <button class="mob-group-btn active" data-group="schools" onclick="mobileSwitchGroup('schools',this)" style="background:#1e4f7e">🏫 בתי ספר</button>
   <button class="mob-group-btn" data-group="matnasim" onclick="mobileSwitchGroup('matnasim',this)">🏢 מתנ"סים</button>
-  <button class="mob-group-btn" data-group="gimlaaim" onclick="mobileSwitchGroup('gimlaaim',this)">🧓 גימלאים</button>
   <button class="mob-group-btn" data-group="saltarbut" onclick="mobileSwitchGroup('saltarbut',this)">🎭 סל תרבות</button>
+  <button class="mob-group-btn" data-group="gimlaaim" onclick="mobileSwitchGroup('gimlaaim',this)">🧓 גימלאים</button>
 </div>
 
 <!-- MOBILE SEARCH -->
@@ -729,10 +730,12 @@
   <h1>UM-Contacts</h1>
 
   <div class="group-switcher">
-    <button class="group-btn active" data-group="schools" onclick="switchGroup('schools')">🏫 בתי ספר</button>
-    <button class="group-btn" data-group="matnasim" onclick="switchGroup('matnasim')">🏛️ מתנ"סים</button>
-    <button class="group-btn" data-group="gimlaaim" onclick="switchGroup('gimlaaim')">👴 גימלאים</button>
-    <button class="group-btn" data-group="saltarbut" onclick="switchGroup('saltarbut')">🎭 סל תרבות</button>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+      <button class="group-btn active" data-group="schools" onclick="switchGroup('schools')">🏫 בתי ספר</button>
+      <button class="group-btn" data-group="matnasim" onclick="switchGroup('matnasim')">🏛️ מתנ"סים</button>
+      <button class="group-btn" data-group="saltarbut" onclick="switchGroup('saltarbut')">🎭 סל תרבות</button>
+      <button class="group-btn" data-group="gimlaaim" onclick="switchGroup('gimlaaim')">👴 גימלאים</button>
+    </div>
   </div>
 
   <div class="sidebar-section" style="position:relative">
