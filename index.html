@@ -2378,22 +2378,27 @@ function renderReminders() {
       const clearArg = r._reminderType === 'conv' ? `'${r.id}','conv',${r._convIdx}` : `'${r.id}','contact'`;
       const reschedArg = r._reminderType === 'conv' ? `'${r.id}','conv',${r._convIdx}` : `'${r.id}','contact'`;
       const rowId = `rr-${r.id}-${r._reminderType}-${r._convIdx ?? 'c'}`;
-      return `<div class="conv-entry">
+      return `<div class="conv-entry" ondblclick="toggleReschedule('${rowId}')" style="cursor:default">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
           <strong style="font-size:15px;cursor:pointer;flex:1;min-width:0" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school)}</strong>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
             <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
-            <button class="btn btn-outline btn-sm" onclick="toggleReschedule('${rowId}')" style="font-size:12px">📅 שנה תאריך</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleReschedule('${rowId}')" style="font-size:12px">✏️ עריכה</button>
             <button class="btn btn-outline btn-sm" onclick="clearReminderInList(${clearArg})" style="font-size:12px;white-space:nowrap">✓ נוקה</button>
           </div>
         </div>
         <div style="font-size:13px;color:var(--muted);margin-top:4px;word-break:break-word">${escHtml(r.city)} · 📅 ${formatDate(r.reminderDate)}${timeStr}</div>
         ${r.reminderReason ? `<div style="font-size:13px;margin-top:4px;word-break:break-word">${escHtml(r.reminderReason)}</div>` : ''}
-        <div id="${rowId}" style="display:none;margin-top:8px;background:#f0f4ff;border-radius:8px;padding:10px;display:none;gap:8px;align-items:center;flex-wrap:wrap">
-          <input type="date" id="${rowId}-date" value="${r.reminderDate}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px">
-          <input type="time" id="${rowId}-time" value="${r.reminderTime||''}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px">
-          <button class="btn btn-primary btn-sm" onclick="applyReschedule('${rowId}',${reschedArg})">✓ עדכן</button>
-          <button class="btn btn-outline btn-sm" onclick="toggleReschedule('${rowId}')">ביטול</button>
+        <div id="${rowId}" style="display:none;margin-top:8px;background:#f0f4ff;border-radius:8px;padding:10px;gap:8px;align-items:flex-start;flex-wrap:wrap;flex-direction:column">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="date" id="${rowId}-date" value="${r.reminderDate}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+            <input type="time" id="${rowId}-time" value="${r.reminderTime||''}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+          </div>
+          <input type="text" id="${rowId}-reason" value="${escHtml(r.reminderReason||'')}" placeholder="הערה / סיבה לתזכורת..." style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;direction:rtl">
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="applyReschedule('${rowId}',${reschedArg})">✓ עדכן</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleReschedule('${rowId}')">ביטול</button>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -2409,6 +2414,7 @@ function toggleReschedule(rowId) {
 function applyReschedule(rowId, contactId, type, convIdx) {
   const newDate = document.getElementById(rowId + '-date').value;
   const newTime = document.getElementById(rowId + '-time').value;
+  const newReason = (document.getElementById(rowId + '-reason') || {}).value || '';
   if (!newDate) { showToast('נא לבחור תאריך'); return; }
   const c = allContacts.find(x => x.id === contactId);
   if (!c) return;
@@ -2420,6 +2426,7 @@ function applyReschedule(rowId, contactId, type, convIdx) {
   } else {
     c.followUpDate = newDate;
     c.followUpTime = newTime || null;
+    c.followUpReason = newReason || null;
   }
   saveToStorage();
   renderReminders();
