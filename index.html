@@ -784,6 +784,7 @@
     <button class="sidebar-btn" onclick="exportData()">📤 ייצוא גיבוי</button>
     <button class="sidebar-btn" onclick="importBackup()">📥 שחזור מגיבוי</button>
     <button class="sidebar-btn" onclick="openTokenSettings()" title="GitHub Token לגישה לנתונים">🔑 הגדרת Token</button>
+    <div id="sync-status" style="font-size:11px;color:var(--muted);text-align:center;padding:4px 0;min-height:16px"></div>
   </div>
 </div>
 
@@ -1335,6 +1336,7 @@ function saveToStorage() {
     existing.data = JSON.stringify(allContacts);
     existing.savedAt = new Date().toISOString();
     localStorage.setItem(backupKey, JSON.stringify(existing));
+    scheduleSyncToGitHub();
   } catch(e) {
     showToast('שגיאה בשמירה - אחסון מלא?');
   }
@@ -1389,24 +1391,102 @@ function loadFromStorage() {
   return false;
 }
 
-// =================== PRIVATE REPO DATA FETCH ===================
+// =================== PRIVATE REPO DATA FETCH & SYNC ===================
 
 const DATA_REPO = 'Nunah31/UM-Contacts-data';
 const DATA_FILE = 'contacts_data.json';
 
-async function fetchContactsDataJSON() {
+let _groupShas = {};      // sha per group file
+let _syncTimers = {};     // debounce timers
+
+function showSyncStatus(msg, isError) {
+  let el = document.getElementById('sync-status');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--red)' : 'var(--muted)';
+}
+
+async function fetchContactsFromGitHub(group) {
   const token = localStorage.getItem('gh_token');
-  if (!token) {
-    showToast('⚠️ לא הוגדר GitHub Token — לחצי על 🔑 הגדרת Token');
-    return null;
-  }
-  const file = GROUPS[activeGroup].file;
+  if (!token) return null;
+  const file = GROUPS[group].file;
   const url = `https://api.github.com/repos/${DATA_REPO}/contents/${file}`;
   const resp = await fetch(url, {
-    headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3.raw' }
+    headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
   });
-  if (!resp.ok) throw new Error('GitHub API: ' + resp.status + ' ' + resp.statusText);
-  return await resp.json();
+  if (!resp.ok) return null;
+  const meta = await resp.json();
+  _groupShas[group] = meta.sha;
+  const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
+  return raw;
+}
+
+async function fetchContactsDataJSON() {
+  const raw = await fetchContactsFromGitHub(activeGroup);
+  if (!raw) throw new Error('לא ניתן לטעון מ-GitHub');
+  return raw;
+}
+
+function mergeContactLists(local, remote) {
+  const remoteMap = Object.fromEntries(remote.map(c => [c.id, c]));
+  const localMap  = Object.fromEntries(local.map(c => [c.id, c]));
+  const merged = remote.map(rc => {
+    const lc = localMap[rc.id];
+    if (!lc) return rc;
+    // prefer local (has local edits like conversations, followups, acquainted, etc.)
+    // but keep remote fields that local doesn't have
+    return Object.assign({}, rc, lc);
+  });
+  // add local-only contacts not yet in remote
+  local.forEach(lc => { if (!remoteMap[lc.id]) merged.push(lc); });
+  return merged;
+}
+
+async function saveContactsToGitHub(group, contacts) {
+  const token = localStorage.getItem('gh_token');
+  if (!token) return;
+  group = group || activeGroup;
+  contacts = contacts || allContacts;
+  const file = GROUPS[group].file;
+  const url = `https://api.github.com/repos/${DATA_REPO}/contents/${file}`;
+  // ensure we have the sha
+  if (!_groupShas[group]) {
+    const resp = await fetch(url, { headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' } });
+    if (resp.ok) { const m = await resp.json(); _groupShas[group] = m.sha; }
+  }
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(contacts, null, 2))));
+  const body = { message: 'sync ' + file, content };
+  if (_groupShas[group]) body.sha = _groupShas[group];
+  try {
+    showSyncStatus('⏳ שומר...');
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      _groupShas[group] = data.content.sha;
+      showSyncStatus('✅ מסונכרן');
+    } else if (resp.status === 409) {
+      // conflict — refresh sha and retry once
+      const m = await (await fetch(url, { headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' } })).json();
+      _groupShas[group] = m.sha;
+      body.sha = m.sha;
+      const r2 = await fetch(url, { method: 'PUT', headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (r2.ok) { const d2 = await r2.json(); _groupShas[group] = d2.content.sha; showSyncStatus('✅ מסונכרן'); }
+      else showSyncStatus('⚠️ שגיאת סנכרון', true);
+    } else {
+      showSyncStatus('⚠️ שגיאת סנכרון', true);
+    }
+  } catch(e) { showSyncStatus('⚠️ אין חיבור', true); }
+}
+
+function scheduleSyncToGitHub() {
+  const group = activeGroup;
+  if (_syncTimers[group]) clearTimeout(_syncTimers[group]);
+  showSyncStatus('⏳ שומר...');
+  _syncTimers[group] = setTimeout(() => saveContactsToGitHub(group, allContacts), 3000);
 }
 
 function openTokenSettings() {
@@ -1438,14 +1518,25 @@ async function switchGroup(group) {
   const loaded = loadFromStorage();
   if (!loaded) {
     try {
-      const raw = await fetchContactsDataJSON();
+      const raw = await fetchContactsFromGitHub(group);
       if (raw) {
         allContacts = GROUPS[group].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
-        saveToStorage();
+        const key = GROUPS[group].key;
+        localStorage.setItem(key, JSON.stringify(allContacts));
       }
     } catch(e) {
       showToast('שגיאה בטעינה: ' + e.message);
     }
+  } else {
+    // background sync: merge local with GitHub
+    fetchContactsFromGitHub(group).then(raw => {
+      if (!raw) return;
+      const remote = GROUPS[group].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+      allContacts = mergeContactLists(allContacts, remote);
+      const key = GROUPS[group].key;
+      localStorage.setItem(key, JSON.stringify(allContacts));
+      applyFilters();
+    }).catch(() => {});
   }
 
   populateCityFilter();
@@ -1491,10 +1582,11 @@ async function init() {
   const loaded = loadFromStorage();
   if (!loaded) {
     try {
-      const raw = await fetchContactsDataJSON();
+      const raw = await fetchContactsFromGitHub(activeGroup);
       if (raw) {
         allContacts = GROUPS[activeGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
-        saveToStorage();
+        const key = GROUPS[activeGroup].key;
+        localStorage.setItem(key, JSON.stringify(allContacts));
       } else {
         allContacts = [];
       }
@@ -1502,6 +1594,17 @@ async function init() {
       allContacts = [];
       showToast('שגיאה בטעינת נתונים: ' + e.message);
     }
+  } else {
+    // background sync: merge local with GitHub
+    fetchContactsFromGitHub(activeGroup).then(raw => {
+      if (!raw) return;
+      const remote = GROUPS[activeGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+      allContacts = mergeContactLists(allContacts, remote);
+      const key = GROUPS[activeGroup].key;
+      localStorage.setItem(key, JSON.stringify(allContacts));
+      applyFilters();
+      checkReminders();
+    }).catch(() => {});
   }
 
   // Load campaigns from GitHub so all devices stay in sync
@@ -4250,7 +4353,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=36').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=37').catch(() => {});
   });
 }
 
