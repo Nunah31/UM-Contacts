@@ -1425,7 +1425,7 @@ async function fetchContactsFromGitHub(group) {
   const resp = await fetch(url, {
     headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
   });
-  if (!resp.ok) return null;
+  if (!resp.ok) throw new Error('GitHub ' + resp.status + ': ' + resp.statusText);
   const meta = await resp.json();
   _groupShas[group] = meta.sha;
   const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
