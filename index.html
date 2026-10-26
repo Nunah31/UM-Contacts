@@ -1439,9 +1439,8 @@ async function fetchContactsFromGitHub(group) {
     }
   }
   if (meta.download_url) {
-    const dlResp = await fetch(meta.download_url, {
-      headers: { 'Authorization': 'token ' + token }
-    });
+    // download_url for private repos is pre-signed — do NOT send Authorization (causes CORS preflight failure)
+    const dlResp = await fetch(meta.download_url);
     if (!dlResp.ok) throw new Error('Download failed: ' + dlResp.status);
     return await dlResp.json();
   }
@@ -4417,7 +4416,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=44').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=45').catch(() => {});
   });
 }
 
