@@ -1429,16 +1429,23 @@ async function fetchContactsFromGitHub(group) {
   if (!resp.ok) throw new Error('GitHub ' + resp.status + ': ' + resp.statusText);
   const meta = await resp.json();
   _groupShas[group] = meta.sha;
-  // Large files (>1MB) come without content — use download_url instead
-  if (!meta.content && meta.download_url) {
+  // Try to parse base64 content; large files may be truncated — fallback to download_url
+  if (meta.content) {
+    try {
+      const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
+      return raw;
+    } catch(e) {
+      // content was truncated — fall through to download_url
+    }
+  }
+  if (meta.download_url) {
     const dlResp = await fetch(meta.download_url, {
       headers: { 'Authorization': 'token ' + token }
     });
     if (!dlResp.ok) throw new Error('Download failed: ' + dlResp.status);
     return await dlResp.json();
   }
-  const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
-  return raw;
+  throw new Error('לא ניתן לטעון את הקובץ');
 }
 
 async function fetchContactsDataJSON() {
@@ -4412,7 +4419,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=42').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=43').catch(() => {});
   });
 }
 
