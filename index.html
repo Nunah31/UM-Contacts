@@ -2516,10 +2516,10 @@ function renderReminders() {
       const reschedArg = r._reminderType === 'conv' ? `'${r.id}','conv',${r._convIdx}` : `'${r.id}','contact'`;
       const rowId = `rr-${r.id}-${r._reminderType}-${r._convIdx ?? 'c'}`;
       return `<div class="conv-entry" ondblclick="toggleReschedule('${rowId}')" style="cursor:default">
+        <strong style="display:block;font-size:15px;cursor:pointer;word-break:break-word;margin-bottom:4px" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school || r.city || '')}</strong>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <strong style="font-size:15px;cursor:pointer;flex:1;min-width:0;word-break:break-word" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school || r.city || '')}</strong>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
-            <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
+          <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
             <button class="btn btn-outline btn-sm" onclick="toggleReschedule('${rowId}')" style="font-size:12px">✏️ עריכה</button>
             <button class="btn btn-outline btn-sm" onclick="clearReminderInList(${clearArg})" style="font-size:12px;white-space:nowrap">✓ נוקה</button>
           </div>
@@ -4416,7 +4416,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=45').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=46').catch(() => {});
   });
 }
 
