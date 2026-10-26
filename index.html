@@ -795,6 +795,7 @@
     <button class="sidebar-btn" onclick="exportData()">📤 ייצוא גיבוי</button>
     <button class="sidebar-btn" onclick="importBackup()">📥 שחזור מגיבוי</button>
     <button class="sidebar-btn" onclick="openTokenSettings()" title="GitHub Token לגישה לנתונים">🔑 הגדרת Token</button>
+    <button class="sidebar-btn" onclick="forcePushToGitHub()" title="שלח את כל הנתונים הנוכחיים ל-GitHub">☁️ דחיפה ל-GitHub</button>
     <div id="sync-status" style="font-size:11px;color:var(--muted);text-align:center;padding:4px 0;min-height:16px"></div>
   </div>
 </div>
@@ -1493,6 +1494,15 @@ async function saveContactsToGitHub(group, contacts) {
       showSyncStatus('⚠️ שגיאת סנכרון', true);
     }
   } catch(e) { showSyncStatus('⚠️ אין חיבור', true); }
+}
+
+async function forcePushToGitHub() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) { showToast('⚠️ הגדירי טוקן קודם'); return; }
+  showSyncStatus('⏳ דוחף...');
+  showToast('☁️ שולח נתונים ל-GitHub...');
+  await saveContactsToGitHub(activeGroup, allContacts);
+  showToast('✅ הנתונים נשלחו ל-GitHub');
 }
 
 function scheduleSyncToGitHub() {
@@ -4402,7 +4412,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=41').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=42').catch(() => {});
   });
 }
 
