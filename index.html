@@ -1426,6 +1426,7 @@ async function fetchContactsFromGitHub(group) {
   const resp = await fetch(url, {
     headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
   });
+  if (resp.status === 404) return null; // file doesn't exist yet in data repo — caller treats as no remote data
   if (!resp.ok) throw new Error('GitHub ' + resp.status + ': ' + resp.statusText);
   const meta = await resp.json();
   _groupShas[group] = meta.sha;
@@ -4186,6 +4187,7 @@ async function mobileRefreshSync() {
       return;
     }
     const raw = await fetchContactsFromGitHub(activeGroup);
+    if (raw === null) { showToast('ℹ️ אין קובץ ב-GitHub עדיין — הנתונים המקומיים נשמרו'); return; }
     if (!Array.isArray(raw)) { showToast('❌ תגובה לא תקינה מ-GitHub'); return; }
     const remote = GROUPS[activeGroup].processRaw ? processRawData(raw) : raw;
     allContacts = [...remote];
@@ -4416,7 +4418,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=46').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=47').catch(() => {});
   });
 }
 
