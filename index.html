@@ -1428,6 +1428,14 @@ async function fetchContactsFromGitHub(group) {
   if (!resp.ok) throw new Error('GitHub ' + resp.status + ': ' + resp.statusText);
   const meta = await resp.json();
   _groupShas[group] = meta.sha;
+  // Large files (>1MB) come without content — use download_url instead
+  if (!meta.content && meta.download_url) {
+    const dlResp = await fetch(meta.download_url, {
+      headers: { 'Authorization': 'token ' + token }
+    });
+    if (!dlResp.ok) throw new Error('Download failed: ' + dlResp.status);
+    return await dlResp.json();
+  }
   const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
   return raw;
 }
@@ -2493,7 +2501,7 @@ function renderReminders() {
       const rowId = `rr-${r.id}-${r._reminderType}-${r._convIdx ?? 'c'}`;
       return `<div class="conv-entry" ondblclick="toggleReschedule('${rowId}')" style="cursor:default">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
-          <strong style="font-size:15px;cursor:pointer;flex:1;min-width:0" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school)}</strong>
+          <strong style="font-size:15px;cursor:pointer;flex:1;min-width:0;word-break:break-word" onclick="isMobile()?mobileSelectContact('${r.id}'):selectContact('${r.id}')">${escHtml(r.school || r.city || '')}</strong>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap">
             <span style="${cls};font-size:13px;font-weight:600;white-space:nowrap">${badge}</span>
             <button class="btn btn-outline btn-sm" onclick="toggleReschedule('${rowId}')" style="font-size:12px">✏️ עריכה</button>
@@ -4394,7 +4402,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=40').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=41').catch(() => {});
   });
 }
 
