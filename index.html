@@ -1431,16 +1431,10 @@ async function fetchContactsDataJSON() {
 }
 
 function mergeContactLists(local, remote) {
+  // GitHub (remote) is source of truth for existing contacts.
+  // Only add local-only contacts that haven't been pushed yet.
   const remoteMap = Object.fromEntries(remote.map(c => [c.id, c]));
-  const localMap  = Object.fromEntries(local.map(c => [c.id, c]));
-  const merged = remote.map(rc => {
-    const lc = localMap[rc.id];
-    if (!lc) return rc;
-    // prefer local (has local edits like conversations, followups, acquainted, etc.)
-    // but keep remote fields that local doesn't have
-    return Object.assign({}, rc, lc);
-  });
-  // add local-only contacts not yet in remote
+  const merged = [...remote];
   local.forEach(lc => { if (!remoteMap[lc.id]) merged.push(lc); });
   return merged;
 }
@@ -1486,10 +1480,13 @@ async function saveContactsToGitHub(group, contacts) {
 }
 
 function scheduleSyncToGitHub() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) { showSyncStatus('⚠️ אין טוקן — לא מסונכרן', true); return; }
   const group = activeGroup;
+  const snapshot = JSON.parse(JSON.stringify(allContacts)); // freeze current state
   if (_syncTimers[group]) clearTimeout(_syncTimers[group]);
   showSyncStatus('⏳ שומר...');
-  _syncTimers[group] = setTimeout(() => saveContactsToGitHub(group, allContacts), 3000);
+  _syncTimers[group] = setTimeout(() => saveContactsToGitHub(group, snapshot), 3000);
 }
 
 function openTokenSettings() {
