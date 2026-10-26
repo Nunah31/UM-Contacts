@@ -4186,12 +4186,10 @@ async function mobileRefreshSync() {
       showToast('❌ GitHub ' + resp.status + ' – ' + resp.statusText);
       return;
     }
-    const meta = await resp.json();
-    _groupShas[activeGroup] = meta.sha;
-    const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
+    const raw = await fetchContactsFromGitHub(activeGroup);
     if (!Array.isArray(raw)) { showToast('❌ תגובה לא תקינה מ-GitHub'); return; }
     const remote = GROUPS[activeGroup].processRaw ? processRawData(raw) : raw;
-    allContacts = mergeContactLists(allContacts, remote);
+    allContacts = [...remote];
     localStorage.setItem(GROUPS[activeGroup].key, JSON.stringify(allContacts));
     applyFilters();
     checkReminders();
@@ -4419,7 +4417,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=43').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=44').catch(() => {});
   });
 }
 
