@@ -1536,13 +1536,14 @@ async function switchGroup(group) {
       showToast('שגיאה בטעינה: ' + e.message);
     }
   } else {
-    // background sync: merge local with GitHub
-    fetchContactsFromGitHub(group).then(raw => {
+    // background sync: use captured group, only update if still active
+    const syncGroup = group;
+    fetchContactsFromGitHub(syncGroup).then(raw => {
       if (!raw) return;
-      const remote = GROUPS[group].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
-      allContacts = mergeContactLists(allContacts, remote);
-      const key = GROUPS[group].key;
-      localStorage.setItem(key, JSON.stringify(allContacts));
+      if (activeGroup !== syncGroup) return; // user switched group — abort
+      const remote = GROUPS[syncGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+      allContacts = [...remote]; // GitHub is source of truth
+      localStorage.setItem(GROUPS[syncGroup].key, JSON.stringify(allContacts));
       applyFilters();
     }).catch(() => {});
   }
@@ -1603,13 +1604,14 @@ async function init() {
       showToast('שגיאה בטעינת נתונים: ' + e.message);
     }
   } else {
-    // background sync: merge local with GitHub
-    fetchContactsFromGitHub(activeGroup).then(raw => {
+    // background sync on init — GitHub is source of truth
+    const initGroup = activeGroup;
+    fetchContactsFromGitHub(initGroup).then(raw => {
       if (!raw) return;
-      const remote = GROUPS[activeGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
-      allContacts = mergeContactLists(allContacts, remote);
-      const key = GROUPS[activeGroup].key;
-      localStorage.setItem(key, JSON.stringify(allContacts));
+      if (activeGroup !== initGroup) return; // user switched group — abort
+      const remote = GROUPS[initGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+      allContacts = [...remote];
+      localStorage.setItem(GROUPS[initGroup].key, JSON.stringify(allContacts));
       applyFilters();
       checkReminders();
     }).catch(() => {});
@@ -4392,7 +4394,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=39').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=40').catch(() => {});
   });
 }
 
