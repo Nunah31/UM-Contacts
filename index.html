@@ -4146,21 +4146,32 @@ function renderMobileFilterBar() {
 
 async function mobileRefreshSync() {
   const token = localStorage.getItem('gh_token');
-  if (!token) { showToast('⚠️ הכניסי טוקן קודם (כפתור 🔑)'); return; }
-  showToast('🔄 מסנכרן...');
+  if (!token) { showToast('⚠️ אין טוקן — לחצי 🔑'); return; }
+  const shortToken = token.slice(0,4) + '...' + token.slice(-4);
+  showToast('🔄 מתחבר... טוקן: ' + shortToken);
   try {
-    const raw = await fetchContactsFromGitHub(activeGroup);
-    if (!raw) { showToast('⚠️ לא ניתן להתחבר ל-GitHub'); return; }
-    const remote = GROUPS[activeGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+    const file = GROUPS[activeGroup].file;
+    const url = `https://api.github.com/repos/${DATA_REPO}/contents/${file}`;
+    const resp = await fetch(url, {
+      headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+    });
+    if (!resp.ok) {
+      showToast('❌ GitHub ' + resp.status + ' – ' + resp.statusText);
+      return;
+    }
+    const meta = await resp.json();
+    _groupShas[activeGroup] = meta.sha;
+    const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
+    if (!Array.isArray(raw)) { showToast('❌ תגובה לא תקינה מ-GitHub'); return; }
+    const remote = GROUPS[activeGroup].processRaw ? processRawData(raw) : raw;
     allContacts = mergeContactLists(allContacts, remote);
-    const key = GROUPS[activeGroup].key;
-    localStorage.setItem(key, JSON.stringify(allContacts));
+    localStorage.setItem(GROUPS[activeGroup].key, JSON.stringify(allContacts));
     applyFilters();
     checkReminders();
     renderStats();
-    showToast('✅ הנתונים עודכנו');
+    showToast('✅ עודכן — ' + remote.length + ' קשרים');
   } catch(e) {
-    showToast('⚠️ שגיאה: ' + e.message);
+    showToast('❌ ' + (e.message || e));
   }
 }
 
@@ -4381,7 +4392,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=38').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=39').catch(() => {});
   });
 }
 
