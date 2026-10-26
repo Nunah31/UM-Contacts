@@ -475,8 +475,13 @@
     padding: 6px 0 env(safe-area-inset-bottom, 6px);
   }
   #mobile-nav .nav-items {
-    display: flex; justify-content: space-around; align-items: center;
+    display: flex; align-items: center;
+    overflow-x: auto; gap: 2px;
+    padding: 0 6px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
+  #mobile-nav .nav-items::-webkit-scrollbar { display: none; }
   .mobile-nav-btn {
     display: flex; flex-direction: column; align-items: center; gap: 2px;
     padding: 8px 14px; background: none; border: none; cursor: pointer;
@@ -716,6 +721,9 @@
     </button>
     <button class="mobile-nav-btn" onclick="openAddContactModal()">
       <span class="nav-icon">➕</span>הוספה
+    </button>
+    <button class="mobile-nav-btn" onclick="mobileRefreshSync()">
+      <span class="nav-icon">🔄</span>רענון
     </button>
     <button class="mobile-nav-btn" onclick="openTokenSettings()">
       <span class="nav-icon">🔑</span>טוקן
@@ -4134,6 +4142,26 @@ function renderMobileFilterBar() {
     `<span class="filter-chip" data-mob-status="has-convo" onclick="mobFilterStatus(this,'has-convo')">💬 היסטוריה</span>` +
     `<span class="filter-chip" data-mob-status="performed" onclick="mobFilterStatus(this,'performed')">✓ הופענו</span>` +
     `<span class="filter-chip" data-mob-status="acquainted" onclick="mobFilterStatus(this,'acquainted')">🤝 היכרות</span>`;
+}
+
+async function mobileRefreshSync() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) { showToast('⚠️ הכניסי טוקן קודם (כפתור 🔑)'); return; }
+  showToast('🔄 מסנכרן...');
+  try {
+    const raw = await fetchContactsFromGitHub(activeGroup);
+    if (!raw) { showToast('⚠️ לא ניתן להתחבר ל-GitHub'); return; }
+    const remote = GROUPS[activeGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+    allContacts = mergeContactLists(allContacts, remote);
+    const key = GROUPS[activeGroup].key;
+    localStorage.setItem(key, JSON.stringify(allContacts));
+    applyFilters();
+    checkReminders();
+    renderStats();
+    showToast('✅ הנתונים עודכנו');
+  } catch(e) {
+    showToast('⚠️ שגיאה: ' + e.message);
+  }
 }
 
 async function mobileSwitchGroup(group, btn) {
