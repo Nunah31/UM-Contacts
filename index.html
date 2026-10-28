@@ -1411,6 +1411,7 @@ const DATA_FILE = 'contacts_data.json';
 let _groupShas = {};      // sha per group file
 let _syncTimers = {};     // debounce timers
 let _localDirty = {};     // groups with unsaved local changes (don't overwrite with GitHub)
+let _defaultBranch = '';  // cached default branch of data repo
 
 function showSyncStatus(msg, isError) {
   let el = document.getElementById('sync-status');
@@ -1474,9 +1475,16 @@ async function saveContactsToGitHub(group, contacts) {
   // always refresh sha before push to avoid 409 conflicts
   const shaResp = await fetch(url, { headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' } });
   if (shaResp.ok) { const m = await shaResp.json(); _groupShas[group] = m.sha; }
-  else if (shaResp.status !== 404) { showSyncStatus('⚠️ שגיאה ' + shaResp.status, true); return; }
+  else if (shaResp.status === 404) { _groupShas[group] = null; } // file doesn't exist yet — clear stale sha
+  else { showSyncStatus('⚠️ שגיאה ' + shaResp.status, true); return; }
+  // get default branch if we don't have it cached
+  if (!_defaultBranch) {
+    const repoResp = await fetch(`https://api.github.com/repos/${DATA_REPO}`, { headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' } });
+    if (repoResp.ok) { const r = await repoResp.json(); _defaultBranch = r.default_branch || 'main'; }
+    else { _defaultBranch = 'main'; }
+  }
   const content = btoa(unescape(encodeURIComponent(JSON.stringify(contacts, null, 2))));
-  const body = { message: 'sync ' + file, content };
+  const body = { message: 'sync ' + file, content, branch: _defaultBranch };
   if (_groupShas[group]) body.sha = _groupShas[group];
   try {
     showSyncStatus('⏳ שומר...');
@@ -4430,7 +4438,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=51').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=52').catch(() => {});
   });
 }
 
