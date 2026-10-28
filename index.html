@@ -1500,8 +1500,10 @@ async function saveContactsToGitHub(group, contacts) {
       else showSyncStatus('⚠️ שגיאת סנכרון', true);
     } else {
       const errText = await resp.text().catch(() => '');
+      let msg = '';
+      try { msg = JSON.parse(errText).message || ''; } catch(e) {}
       showSyncStatus('⚠️ שגיאה ' + resp.status, true);
-      console.error('GitHub sync error', resp.status, errText);
+      showToast('❌ GitHub ' + resp.status + (msg ? ': ' + msg : '') + ' | ' + group + '/' + file);
     }
   } catch(e) { showSyncStatus('⚠️ אין חיבור: ' + e.message, true); }
 }
@@ -4424,7 +4426,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=49').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=50').catch(() => {});
   });
 }
 
