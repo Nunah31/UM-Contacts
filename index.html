@@ -1432,22 +1432,21 @@ async function fetchContactsFromGitHub(group) {
   if (!resp.ok) throw new Error('GitHub ' + resp.status + ': ' + resp.statusText);
   const meta = await resp.json();
   _groupShas[group] = meta.sha;
-  // Try to parse base64 content; large files may be truncated — fallback to download_url
+  // Try to parse base64 content; large files may be truncated — fallback to raw API (bypasses CDN cache)
   if (meta.content) {
     try {
       const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
       return raw;
     } catch(e) {
-      // content was truncated — fall through to download_url
+      // content was truncated — fall through to raw API fetch
     }
   }
-  if (meta.download_url) {
-    // download_url for private repos is pre-signed — do NOT send Authorization (causes CORS preflight failure)
-    const dlResp = await fetch(meta.download_url);
-    if (!dlResp.ok) throw new Error('Download failed: ' + dlResp.status);
-    return await dlResp.json();
-  }
-  throw new Error('לא ניתן לטעון את הקובץ');
+  // Use GitHub raw media type — goes through API (not CDN), always returns latest version
+  const rawResp = await fetch(url, {
+    headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3.raw' }
+  });
+  if (!rawResp.ok) throw new Error('Raw fetch failed: ' + rawResp.status);
+  return await rawResp.json();
 }
 
 async function fetchContactsDataJSON() {
@@ -4438,7 +4437,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=52').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=53').catch(() => {});
   });
 }
 
