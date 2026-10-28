@@ -796,6 +796,7 @@
     <button class="sidebar-btn" onclick="importBackup()">📥 שחזור מגיבוי</button>
     <button class="sidebar-btn" onclick="openTokenSettings()" title="GitHub Token לגישה לנתונים">🔑 הגדרת Token</button>
     <button class="sidebar-btn" onclick="forcePushToGitHub()" title="שלח את כל הנתונים הנוכחיים ל-GitHub">☁️ דחיפה ל-GitHub</button>
+    <button class="sidebar-btn" onclick="backupAllGroups()" title="הורידי קובץ JSON עם כל הנתונים מכל הקבוצות">💾 גיבוי מקומי</button>
     <div id="sync-status" style="font-size:11px;color:var(--muted);text-align:center;padding:4px 0;min-height:16px"></div>
   </div>
 </div>
@@ -1518,6 +1519,22 @@ async function saveContactsToGitHub(group, contacts) {
       }
     }
   } catch(e) { showSyncStatus('⚠️ אין חיבור: ' + e.message, true); }
+}
+
+function backupAllGroups() {
+  const backup = { date: new Date().toISOString(), groups: {} };
+  for (const g of Object.keys(GROUPS)) {
+    try {
+      const d = localStorage.getItem(GROUPS[g].key);
+      backup.groups[g] = d ? JSON.parse(d) : [];
+    } catch(e) { backup.groups[g] = []; }
+  }
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'um-contacts-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  showToast('💾 גיבוי הורד בהצלחה');
 }
 
 async function forcePushToGitHub() {
@@ -4438,7 +4455,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=54').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=55').catch(() => {});
   });
 }
 
