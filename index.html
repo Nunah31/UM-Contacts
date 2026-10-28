@@ -1503,7 +1503,11 @@ async function saveContactsToGitHub(group, contacts) {
       let msg = '';
       try { msg = JSON.parse(errText).message || ''; } catch(e) {}
       showSyncStatus('⚠️ שגיאה ' + resp.status, true);
-      showToast('❌ GitHub ' + resp.status + (msg ? ': ' + msg : '') + ' | ' + group + '/' + file);
+      if (resp.status === 404) {
+        showToast('❌ 404 – בדקי שלטוקן יש הרשאת Contents: Read and write (לא Read-only)');
+      } else {
+        showToast('❌ GitHub ' + resp.status + (msg ? ': ' + msg : '') + ' | ' + file);
+      }
     }
   } catch(e) { showSyncStatus('⚠️ אין חיבור: ' + e.message, true); }
 }
@@ -4426,7 +4430,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=50').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=51').catch(() => {});
   });
 }
 
