@@ -1404,6 +1404,20 @@ function loadFromStorage() {
   return false;
 }
 
+function migrateFollowUpTime() {
+  let changed = false;
+  allContacts.forEach(c => {
+    if (!c.followUpTime || !c.followUpDate || !c.conversations) return;
+    c.conversations.forEach(conv => {
+      if (conv.followUpDate === c.followUpDate && !conv.followUpTime) {
+        conv.followUpTime = c.followUpTime;
+        changed = true;
+      }
+    });
+  });
+  if (changed) saveToStorage();
+}
+
 // =================== PRIVATE REPO DATA FETCH & SYNC ===================
 
 const DATA_REPO = 'Nunah31/UM-Contacts-data';
@@ -1584,6 +1598,7 @@ async function switchGroup(group) {
   document.getElementById('sidebar').style.background = GROUPS[group].color;
 
   const loaded = loadFromStorage();
+  if (loaded) migrateFollowUpTime();
   if (!loaded) {
     try {
       const raw = await fetchContactsFromGitHub(group);
@@ -1591,6 +1606,7 @@ async function switchGroup(group) {
         allContacts = GROUPS[group].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
         const key = GROUPS[group].key;
         localStorage.setItem(key, JSON.stringify(allContacts));
+        migrateFollowUpTime();
       }
     } catch(e) {
       showToast('שגיאה בטעינה: ' + e.message);
@@ -4459,7 +4475,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=57').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=58').catch(() => {});
   });
 }
 
