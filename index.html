@@ -2119,7 +2119,7 @@ function saveCall() {
   if (contactPhone) selectedContact.mobile = contactPhone;
 
   // Add conversation
-  const conv = { date, notes, status, followUpDate: followup || null };
+  const conv = { date, notes, status, followUpDate: followup || null, followUpTime: followupTime || null };
   if (!selectedContact.conversations) selectedContact.conversations = [];
   selectedContact.conversations.unshift(conv);
 
@@ -4459,7 +4459,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=56').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=57').catch(() => {});
   });
 }
 
