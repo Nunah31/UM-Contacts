@@ -2566,8 +2566,12 @@ function renderReminders() {
         ${r.reminderReason ? `<div style="font-size:13px;margin-top:4px;word-break:break-word">${escHtml(r.reminderReason)}</div>` : ''}
         <div id="${rowId}" style="display:none;margin-top:8px;background:#f0f4ff;border-radius:8px;padding:10px;gap:8px;align-items:flex-start;flex-wrap:wrap;flex-direction:column">
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <input type="date" id="${rowId}-date" value="${r.reminderDate}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px">
-            <input type="time" id="${rowId}-time" value="${r.reminderTime||''}" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+            <div class="date-wrap" onclick="this.querySelector('input').showPicker&&this.querySelector('input').showPicker()" style="min-width:130px">
+              <span class="date-fmt-overlay" id="${rowId}-date-disp">${r.reminderDate ? formatDate(r.reminderDate) : 'בחרי תאריך'}</span>
+              <input type="date" id="${rowId}-date" value="${r.reminderDate}" lang="he" oninput="updateDateDisp(this,'${rowId}-date-disp')">
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" onclick="openClockPicker('${rowId}-time')" id="${rowId}-time-btn" style="white-space:nowrap">${r.reminderTime ? '⏰ ' + r.reminderTime : 'בחרי שעה'}</button>
+            <input type="hidden" id="${rowId}-time" value="${r.reminderTime||''}">
           </div>
           <input type="text" id="${rowId}-reason" value="${escHtml(r.reminderReason||'')}" placeholder="הערה / סיבה לתזכורת..." style="width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;direction:rtl">
           <div style="display:flex;gap:8px">
@@ -4455,7 +4459,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=55').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=56').catch(() => {});
   });
 }
 
