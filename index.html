@@ -687,6 +687,7 @@
 <div id="mobile-group-bar">
   <button class="mob-group-btn active" data-group="schools" onclick="mobileSwitchGroup('schools',this)" style="background:#1e4f7e">🏫 בתי ספר</button>
   <button class="mob-group-btn" data-group="matnasim" onclick="mobileSwitchGroup('matnasim',this)">🏢 מתנ"סים</button>
+  <button class="mob-group-btn" data-group="irijot" onclick="mobileSwitchGroup('irijot',this)">🏘️ עיריות</button>
   <button class="mob-group-btn" data-group="saltarbut" onclick="mobileSwitchGroup('saltarbut',this)">🎭 סל תרבות</button>
   <button class="mob-group-btn" data-group="gimlaaim" onclick="mobileSwitchGroup('gimlaaim',this)">🧓 גימלאים</button>
 </div>
@@ -744,6 +745,7 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
       <button class="group-btn active" data-group="schools" onclick="switchGroup('schools')">🏫 בתי ספר</button>
       <button class="group-btn" data-group="matnasim" onclick="switchGroup('matnasim')">🏛️ מתנ"סים</button>
+      <button class="group-btn" data-group="irijot" onclick="switchGroup('irijot')">🏘️ עיריות וישובים</button>
       <button class="group-btn" data-group="saltarbut" onclick="switchGroup('saltarbut')">🎭 סל תרבות</button>
       <button class="group-btn" data-group="gimlaaim" onclick="switchGroup('gimlaaim')">👴 גימלאים</button>
     </div>
@@ -1330,10 +1332,11 @@ let activeStatusFilters = new Set();
 let activeCampaignFilter = '';
 
 const GROUPS = {
-  schools:   { label: '🏫 בתי ספר',    key: 'um_contacts_v4',   file: 'contacts_data.json',   color: '#1a3a5c', processRaw: true },
-  matnasim:  { label: '🏛️ מתנ"סים',  key: 'um_matnasim_v1',   file: 'matnasim_data.json',   color: '#7a3355', processRaw: false },
-  gimlaaim:  { label: '👴 גימלאים',   key: 'um_gimlaaim_v1',   file: 'gimlaaim_data.json',   color: '#4a2a6e', processRaw: false },
-  saltarbut: { label: '🎭 סל תרבות',  key: 'um_saltarbut_v1',  file: 'saltarbut_data.json',  color: '#1a6b4a', processRaw: false },
+  schools:   { label: '🏫 בתי ספר',         key: 'um_contacts_v4',   file: 'contacts_data.json',   color: '#1a3a5c', processRaw: true },
+  matnasim:  { label: '🏛️ מתנ"סים',       key: 'um_matnasim_v1',   file: 'matnasim_data.json',   color: '#7a3355', processRaw: false },
+  gimlaaim:  { label: '👴 גימלאים',         key: 'um_gimlaaim_v1',   file: 'gimlaaim_data.json',   color: '#4a2a6e', processRaw: false },
+  saltarbut: { label: '🎭 סל תרבות',        key: 'um_saltarbut_v1',  file: 'saltarbut_data.json',  color: '#1a6b4a', processRaw: false },
+  irijot:    { label: '🏘️ עיריות וישובים', key: 'um_irijot_v1',     file: 'irijot_data.json',     color: '#5a4a1a', processRaw: false },
 };
 let activeGroup = localStorage.getItem('um_active_group') || 'schools';
 function currentStorageKey() { return GROUPS[activeGroup].key; }
@@ -1760,7 +1763,7 @@ function applyFilters() {
   const city = document.getElementById('city-filter').value;
 
   filteredContacts = allContacts.filter(c => {
-    if (activeLevel && !c.level.includes(activeLevel)) return false;
+    if (activeLevel && !levelIncludes(c, activeLevel)) return false;
     if (city && c.city !== city) return false;
     // Multi-select status filters (AND logic)
     if (activeStatusFilters.size > 0) {
@@ -1851,6 +1854,7 @@ function renderLevelFilters() {
     matnasim:  { label: 'תחום עניין',   chips: [['','הכל'],['מבוגרים','מבוגרים'],['נוער','נוער'],['ילדים','ילדים'],['גימלאים','גימלאים'],['הכל','כל הגילאים']] },
     gimlaaim:  { label: 'תחום עניין',   chips: [['','הכל'],['מופעי קונספט','קונספט'],['מופעי בוקר','מופעי בוקר'],['תקציב נמוך','תקציב נמוך']] },
     saltarbut: { label: 'אזור',         chips: [['','הכל'],['מרכז','מרכז'],['צפון','צפון'],['דרום','דרום'],['חיפה','חיפה'],['שרון','שרון'],['ירושלים/יו"ש','ירושלים/יו"ש'],['ארצי','ארצי']] },
+    irijot:    { label: 'תחום עניין',   chips: [['','הכל'],['מבוגרים','מבוגרים'],['נוער','נוער'],['ילדים','ילדים'],['גימלאים','גימלאים'],['הכל','כל הגילאים']] },
   };
   const g = groups[activeGroup] || groups.schools;
   sec.innerHTML = `
@@ -1900,7 +1904,8 @@ function renderList() {
 
   const todayStr = today();
   list.innerHTML = filteredContacts.map((c, i) => {
-    const levelTag = c.level ? `<span class="level-tag tag-${c.level.split(' ')[0]}">${c.level}</span>` : '';
+    const _ls = levelStr(c);
+    const levelTag = _ls ? `<span class="level-tag tag-${(Array.isArray(c.level)?c.level[0]:c.level||'').split(' ')[0]}">${_ls}</span>` : '';
 
     let indicatorClass = '';
     let indicatorTitle = '';
@@ -1983,7 +1988,8 @@ function showContactDetail() {
     </div>
   `).join('');
 
-  const levelClass = c.level ? 'tag-' + c.level.split(' ')[0] : 'tag-other';
+  const _lsDetail = levelStr(c);
+  const levelClass = c.level ? 'tag-' + (Array.isArray(c.level)?c.level[0]:c.level).split(' ')[0] : 'tag-other';
 
   document.getElementById('view-contact-detail').innerHTML = `
     <div class="detail-header">
@@ -1992,7 +1998,7 @@ function showContactDetail() {
         <h2>${escHtml(c.school)}</h2>
         <div class="meta">
           ${c.city ? escHtml(c.city) : ''}
-          ${c.level ? `<span class="level-tag ${levelClass}" style="margin-right:8px">${escHtml(c.level)}</span>` : ''}
+          ${_lsDetail ? `<span class="level-tag ${levelClass}" style="margin-right:8px">${escHtml(_lsDetail)}</span>` : ''}
           ${c.performedBefore ? '<span class="level-tag" style="background:#d4edda;color:#155724;margin-right:6px">✓ הופענו בעבר</span>' : ''}
           ${c.acquainted ? '<span class="level-tag" style="background:#e8d5f5;color:#6a1b9a;margin-right:6px">🤝 יש היכרות</span>' : ''}
           ${c.unsubscribed ? '<span class="level-tag" style="background:#f8d7da;color:#721c24;margin-right:6px">⛔ ביקש הסרה</span>' : ''}
@@ -2045,7 +2051,7 @@ function showContactDetail() {
         <div class="info-item"><label>עיר</label><div class="value">${escHtml(c.city)}</div></div>
         ${activeGroup === 'schools' ? `
         <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
-        <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(c.level || '—')}</div></div>` : ''}
+        <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(levelStr(c) || '—')}</div></div>` : ''}
         <div class="info-item"><label>טלפון</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
         ${c.phone2 ? `<div class="info-item"><label>טלפון 2</label><div class="value"><a href="tel:${c.phone2}">${escHtml(c.phone2)}</a></div></div>` : ''}
         ${activeGroup === 'schools' ? `<div class="info-item"><label>מייל בי"ס</label><div class="value">${c.schoolEmail ? `<a href="mailto:${c.schoolEmail}">${escHtml(c.schoolEmail)}</a>` : '—'}</div></div>` : ''}
@@ -2076,6 +2082,17 @@ function showContactDetail() {
 
 function escHtml(str) {
   return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function levelStr(c) {
+  if (!c.level) return '';
+  return Array.isArray(c.level) ? c.level.join(' · ') : c.level;
+}
+
+function levelIncludes(c, val) {
+  if (!val) return true;
+  if (!c.level) return false;
+  return Array.isArray(c.level) ? c.level.includes(val) : c.level.includes(val);
 }
 
 function formatDate(d) {
@@ -2318,6 +2335,8 @@ function editContact() {
   const isSch = activeGroup === 'schools';
   const isMat = activeGroup === 'matnasim';
   const isGim = activeGroup === 'gimlaaim';
+  const isIri = activeGroup === 'irijot';
+  const isMultiLevel = isMat || isIri;
 
   const schoolLabel    = 'שם המוסד';
   const phoneLabel     = 'טלפון';
@@ -2325,6 +2344,13 @@ function editContact() {
   const levelLabel     = isSch ? 'שלב בחינוך'   : activeGroup === 'saltarbut' ? 'אזור' : 'תחום עניין';
 
   const isST = activeGroup === 'saltarbut';
+  const _curLevels = Array.isArray(c.level) ? c.level : (c.level ? [c.level] : []);
+  const _multiOpts = ['מבוגרים','נוער','ילדים','גימלאים','הכל'];
+  const multiLevelHtml = `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px" id="e-level-chips">` +
+    _multiOpts.map(v => `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;background:${_curLevels.includes(v)?'var(--primary)':'var(--bg-alt)'};color:${_curLevels.includes(v)?'#fff':'var(--text)'};padding:4px 10px;border-radius:20px;font-size:13px;border:1px solid var(--border);transition:.15s">
+      <input type="checkbox" value="${v}" ${_curLevels.includes(v)?'checked':''} style="display:none" onchange="this.parentElement.style.background=this.checked?'var(--primary)':'var(--bg-alt)';this.parentElement.style.color=this.checked?'#fff':'var(--text)'">
+      ${v}</label>`).join('') + `</div>`;
+
   const levelOptions = isSch
     ? `<option value="" ${!c.level?'selected':''}>---</option>
        <option value="יסודי"           ${c.level==='יסודי'?'selected':''}>יסודי</option>
@@ -2334,13 +2360,6 @@ function editContact() {
        <option value="מתנס"            ${c.level==='מתנס'?'selected':''}>מתנס</option>
        <option value="גימלאים"         ${c.level==='גימלאים'?'selected':''}>גימלאים</option>
        <option value="סל תרבות ארצי"   ${c.level==='סל תרבות ארצי'?'selected':''}>סל תרבות ארצי</option>`
-    : isMat
-    ? `<option value="" ${!c.level?'selected':''}>---</option>
-       <option value="מבוגרים"  ${c.level==='מבוגרים'?'selected':''}>מבוגרים</option>
-       <option value="נוער"     ${c.level==='נוער'?'selected':''}>נוער</option>
-       <option value="ילדים"    ${c.level==='ילדים'?'selected':''}>ילדים</option>
-       <option value="גימלאים"  ${c.level==='גימלאים'?'selected':''}>גימלאים</option>
-       <option value="הכל"      ${c.level==='הכל'?'selected':''}>הכל</option>`
     : isST
     ? `<option value="" ${!c.level?'selected':''}>---</option>
        <option value="מרכז"         ${c.level==='מרכז'?'selected':''}>מרכז</option>
@@ -2363,7 +2382,7 @@ function editContact() {
     </div>
     <div class="form-row">
       <div class="form-group"><label>${levelLabel}</label>
-        <select id="e-level">${levelOptions}</select>
+        ${isMultiLevel ? multiLevelHtml : `<select id="e-level">${levelOptions}</select>`}
       </div>
       ${isSch ? `<div class="form-group"><label>כתובת</label><input id="e-address" value="${escHtml(c.address||'')}"></div>` : ''}
       ${isGim ? `<div class="form-group"><label>סטטוס</label>
@@ -2400,6 +2419,7 @@ function editContact() {
         <select id="e-group">
           <option value="schools"  ${activeGroup==='schools' ?'selected':''}>🏫 בתי ספר</option>
           <option value="matnasim" ${activeGroup==='matnasim'?'selected':''}>🏛️ מתנ"סים</option>
+          <option value="irijot"   ${activeGroup==='irijot'  ?'selected':''}>🏘️ עיריות וישובים</option>
           <option value="gimlaaim" ${activeGroup==='gimlaaim'?'selected':''}>👴 גימלאים</option>
         </select>
       </div>
@@ -2435,7 +2455,13 @@ function saveEdit() {
 
   c.school      = document.getElementById('e-school').value.trim();
   c.city        = document.getElementById('e-city').value.trim();
-  c.level       = document.getElementById('e-level').value;
+  const _isMulti = activeGroup === 'matnasim' || activeGroup === 'irijot';
+  if (_isMulti) {
+    const checked = [...document.querySelectorAll('#e-level-chips input[type=checkbox]:checked')].map(el => el.value);
+    c.level = checked.length ? checked : null;
+  } else {
+    c.level = document.getElementById('e-level').value;
+  }
   const addrEl  = document.getElementById('e-address');
   if (addrEl) c.address = addrEl.value.trim();
   c.phone       = document.getElementById('e-phone').value.trim();
@@ -2837,7 +2863,10 @@ function renderStats() {
 
   // Level breakdown
   const levels = {};
-  allContacts.forEach(c => { const l = c.level || 'לא מוגדר'; levels[l] = (levels[l] || 0) + 1; });
+  allContacts.forEach(c => {
+    const ls = Array.isArray(c.level) ? c.level : (c.level ? [c.level] : ['לא מוגדר']);
+    ls.forEach(l => { levels[l] = (levels[l] || 0) + 1; });
+  });
   document.getElementById('level-breakdown').innerHTML = Object.entries(levels)
     .sort((a, b) => b[1] - a[1])
     .map(([l, n]) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
@@ -3014,7 +3043,7 @@ function initTooltip() {
     if (!c) return;
 
     let html = `<strong>🏫 ${escHtml(c.school)}</strong>`;
-    html += `<div style="font-size:13px;color:#aab5c3;margin-bottom:8px">${escHtml(c.city)}${c.level ? ' · ' + escHtml(c.level) : ''}</div>`;
+    html += `<div style="font-size:13px;color:#aab5c3;margin-bottom:8px">${escHtml(c.city)}${levelStr(c) ? ' · ' + escHtml(levelStr(c)) : ''}</div>`;
     if (c.contactName) html += `<div>👤 ${escHtml(c.contactName)}</div>`;
     if (c.mobile) html += `<div>📱 ${escHtml(c.mobile)}</div>`;
     if (c.email) html += `<div>✉️ ${escHtml(c.email)}</div>`;
@@ -3322,6 +3351,7 @@ function renderCpLevelBar() {
     matnasim:  { label: 'תחום',      chips: ['','מבוגרים','נוער','ילדים','גימלאים','הכל'] },
     gimlaaim:  { label: 'סוג',       chips: ['','מופעי קונספט','מופעי בוקר','תקציב נמוך'] },
     saltarbut: { label: 'אזור',      chips: ['','מרכז','צפון','דרום','חיפה','שרון','ירושלים/יו"ש','ארצי'] },
+    irijot:    { label: 'תחום',      chips: ['','מבוגרים','נוער','ילדים','גימלאים','הכל'] },
   };
   const def = levelDefs[activeGroup] || levelDefs.schools;
   bar.innerHTML = `<span style="font-size:13px;color:var(--muted);font-weight:600">${def.label}:</span>` +
@@ -3805,7 +3835,7 @@ function renderMLRecipients() {
       <input type="checkbox" ${isSel?'checked':''} onchange="mlToggle('${c.id}',this.checked)">
       <div style="flex:1">
         <div style="font-weight:600">${escHtml(c.school)}</div>
-        <div style="font-size:12px;color:var(--muted)">${escHtml(c.city)} · ${escHtml(c.level||'')} ${c.email?'📧':''}${c.mobile?'📱':''}</div>
+        <div style="font-size:12px;color:var(--muted)">${escHtml(c.city)} · ${escHtml(levelStr(c))} ${c.email?'📧':''}${c.mobile?'📱':''}</div>
       </div>
     </label>`;
   };
@@ -4475,7 +4505,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=58').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=59').catch(() => {});
   });
 }
 
