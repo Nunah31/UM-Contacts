@@ -2484,7 +2484,7 @@ function saveEdit() {
     // Switch to new group and insert contact there
     activeGroup = newGroup;
     localStorage.setItem('um_active_group', newGroup);
-    loadFromStorage();
+    if (!loadFromStorage()) allContacts = [];  // reset if new group has no data yet
     allContacts.unshift(c);
     saveToStorage();
     // Update UI for new group
@@ -4505,7 +4505,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=59').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=60').catch(() => {});
   });
 }
 
