@@ -1428,8 +1428,17 @@ const DATA_FILE = 'contacts_data.json';
 
 let _groupShas = {};      // sha per group file
 let _syncTimers = {};     // debounce timers
-let _localDirty = {};     // groups with unsaved local changes (don't overwrite with GitHub)
 let _defaultBranch = '';  // cached default branch of data repo
+
+// _localDirty persists to localStorage so it survives page reloads
+const _DIRTY_KEY = 'um_local_dirty';
+function _getDirty() { try { return JSON.parse(localStorage.getItem(_DIRTY_KEY) || '{}'); } catch(e) { return {}; } }
+function _setDirty(group, val) { const d = _getDirty(); d[group] = val; localStorage.setItem(_DIRTY_KEY, JSON.stringify(d)); }
+const _localDirtyProxy = new Proxy({}, {
+  get(_, group) { return _getDirty()[group] || false; },
+  set(_, group, val) { _setDirty(group, val); return true; }
+});
+const _localDirty = _localDirtyProxy;
 
 function showSyncStatus(msg, isError) {
   let el = document.getElementById('sync-status');
