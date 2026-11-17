@@ -1,4 +1,4 @@
-﻿const CACHE = 'um-contacts-v61';
+﻿const CACHE = 'um-contacts-v62';
 const BASE = self.registration.scope;
 const FILES = [BASE, BASE + 'index.html', BASE + 'icon.png', BASE + 'contacts_data.json'];
 

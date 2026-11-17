@@ -2417,10 +2417,11 @@ function editContact() {
     <div class="form-row">
       <div class="form-group"><label>העברה לקבוצה</label>
         <select id="e-group">
-          <option value="schools"  ${activeGroup==='schools' ?'selected':''}>🏫 בתי ספר</option>
-          <option value="matnasim" ${activeGroup==='matnasim'?'selected':''}>🏛️ מתנ"סים</option>
-          <option value="irijot"   ${activeGroup==='irijot'  ?'selected':''}>🏘️ עיריות וישובים</option>
-          <option value="gimlaaim" ${activeGroup==='gimlaaim'?'selected':''}>👴 גימלאים</option>
+          <option value="schools"   ${activeGroup==='schools'  ?'selected':''}>🏫 בתי ספר</option>
+          <option value="matnasim"  ${activeGroup==='matnasim' ?'selected':''}>🏛️ מתנ"סים</option>
+          <option value="irijot"    ${activeGroup==='irijot'   ?'selected':''}>🏘️ עיריות וישובים</option>
+          <option value="saltarbut" ${activeGroup==='saltarbut'?'selected':''}>🎭 סל תרבות</option>
+          <option value="gimlaaim"  ${activeGroup==='gimlaaim' ?'selected':''}>👴 גימלאים</option>
         </select>
       </div>
     </div>
@@ -4505,7 +4506,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=61').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=62').catch(() => {});
   });
 }
 
