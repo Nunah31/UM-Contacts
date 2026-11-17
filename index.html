@@ -794,6 +794,7 @@
   </div>
 
   <div class="sidebar-section" style="margin-top:auto; padding-top:20px;">
+    <button class="sidebar-btn" onclick="forceReloadFromGitHub()" title="מחק נתונים מקומיים וטען מחדש מ-GitHub">🔄 טעינה מחדש מ-GitHub</button>
     <button class="sidebar-btn" onclick="exportData()">📤 ייצוא גיבוי</button>
     <button class="sidebar-btn" onclick="importBackup()">📥 שחזור מגיבוי</button>
     <button class="sidebar-btn" onclick="openTokenSettings()" title="GitHub Token לגישה לנתונים">🔑 הגדרת Token</button>
@@ -1459,14 +1460,24 @@ async function fetchContactsFromGitHub(group) {
   if (!resp.ok) throw new Error('GitHub ' + resp.status + ': ' + resp.statusText);
   const meta = await resp.json();
   _groupShas[group] = meta.sha;
-  // Try to parse base64 content; large files may be truncated — fallback to download_url
-  if (meta.content) {
+  // For non-truncated files, decode from base64 content directly
+  if (meta.content && !meta.truncated) {
     try {
-      const raw = JSON.parse(decodeURIComponent(escape(atob(meta.content.replace(/\n/g,'')))));
-      return raw;
-    } catch(e) {
-      // content was truncated — fall through to download_url
-    }
+      return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(meta.content.replace(/\n/g,'')), c=>c.charCodeAt(0))));
+    } catch(e) { /* fall through */ }
+  }
+  // Large/truncated files: use git blob API which returns full content regardless of size
+  if (meta.sha) {
+    try {
+      const blobUrl = `https://api.github.com/repos/${DATA_REPO}/git/blobs/${meta.sha}`;
+      const blobResp = await fetch(blobUrl, {
+        headers: { 'Authorization': 'token ' + token, 'Accept': 'application/vnd.github.v3+json' }
+      });
+      if (blobResp.ok) {
+        const blob = await blobResp.json();
+        return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(blob.content.replace(/\n/g,'')), c=>c.charCodeAt(0))));
+      }
+    } catch(e) { /* fall through to download_url */ }
   }
   if (meta.download_url) {
     // download_url for private repos is pre-signed — do NOT send Authorization (causes CORS preflight failure)
@@ -1561,6 +1572,32 @@ function backupAllGroups() {
   a.download = 'um-contacts-backup-' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
   showToast('💾 גיבוי הורד בהצלחה');
+}
+
+async function forceReloadFromGitHub() {
+  const token = localStorage.getItem('gh_token');
+  if (!token) { showToast('⚠️ הגדירי טוקן קודם'); return; }
+  if (!confirm('פעולה זו תמחק את הנתונים המקומיים של "' + GROUPS[activeGroup].label + '" ותטען מחדש מ-GitHub. להמשיך?')) return;
+  showSyncStatus('⏳ טוען מ-GitHub...');
+  localStorage.removeItem(GROUPS[activeGroup].key);
+  _setDirty(activeGroup, false);
+  try {
+    const raw = await fetchContactsFromGitHub(activeGroup);
+    if (raw) {
+      allContacts = GROUPS[activeGroup].processRaw ? processRawData(raw) : (Array.isArray(raw) ? raw : []);
+      localStorage.setItem(GROUPS[activeGroup].key, JSON.stringify(allContacts));
+      migrateFollowUpTime();
+      applyFilters();
+      updateBadges();
+      showSyncStatus('✅ נטען בהצלחה — ' + allContacts.length + ' רשומות');
+      showToast('✅ נטענו ' + allContacts.length + ' רשומות מ-GitHub');
+    } else {
+      showToast('⚠️ לא נמצא קובץ ב-GitHub');
+    }
+  } catch(e) {
+    showSyncStatus('⚠️ שגיאת טעינה', true);
+    showToast('שגיאה: ' + e.message);
+  }
 }
 
 async function forcePushToGitHub() {
