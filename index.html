@@ -1979,8 +1979,8 @@ function showContactDetail() {
   const convHtml = sortedConvos.map((conv, i) => `
     <div class="conv-entry" id="conv-entry-${i}" data-conv-idx="${conv._origIdx}">
       <div style="display:flex;gap:4px;position:absolute;top:8px;left:8px">
-        <button class="delete-conv" style="position:static" data-action="edit" data-idx="${conv._origIdx}" title="עריכה">✏️</button>
-        <button class="delete-conv" style="position:static" data-action="delete" data-idx="${conv._origIdx}" title="מחיקה">✕</button>
+        <button class="delete-conv" style="position:static" data-action="edit" data-idx="${i}" title="עריכה">✏️</button>
+        <button class="delete-conv" style="position:static" data-action="delete" data-idx="${i}" title="מחיקה">✕</button>
       </div>
       <div class="conv-date">${formatDate(conv.date)} ${conv.status ? ' · ' + statusLabel(conv.status) : ''}</div>
       <div class="conv-notes">${escHtml(conv.notes)}</div>
@@ -4505,7 +4505,7 @@ function checkAndNotifyDueReminders() {
 // Register service worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js?v=60').catch(() => {});
+    navigator.serviceWorker.register('./sw.js?v=61').catch(() => {});
   });
 }
 
