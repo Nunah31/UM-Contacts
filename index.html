@@ -1776,7 +1776,7 @@ function processRawData(raw) {
     email: c.email || '',
     followUpDate: c.followUpDate || null,
     followUpReason: c.followUpReason || null,
-    conversations: (c.conversations || []).map(cv => ({
+    conversations: (c.conversations || []).filter(cv => cv != null).map(cv => ({
       date: cv.date || today(),
       notes: cv.notes || '',
       status: cv.status || 'talked',
