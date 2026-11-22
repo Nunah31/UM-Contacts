@@ -2092,12 +2092,14 @@ function showContactDetail() {
 
     ${(() => {
       const legacyContacts = [];
-      if (c.contactName) legacyContacts.push({ name: c.contactName, mobile: c.mobile, email: c.email, _legacy: true });
-      if (c.contactName2) legacyContacts.push({ name: c.contactName2, mobile: c.mobile2, email: c.email2, _legacy: true });
+      if (c.contactName) legacyContacts.push({ name: c.contactName, role: c.contactRole||'', phone: '', mobile: c.mobile||'', email: c.email||'', _key: 'L1' });
+      if (c.contactName2) legacyContacts.push({ name: c.contactName2, role: c.contactRole2||'', phone: '', mobile: c.mobile2||'', email: c.email2||'', _key: 'L2' });
       const newContacts = c.contacts || [];
       const totalCount = legacyContacts.length + newContacts.length;
 
-      function renderContactRow(p, i, isNew) {
+      const inStyle = 'padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)';
+
+      function renderContactRow(p, editKey) {
         return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--surface)">
           <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
             <div style="flex:1;min-width:0">
@@ -2109,10 +2111,10 @@ function showContactDetail() {
                 ${p.email ? `<span>✉️ <a href="mailto:${p.email}">${escHtml(p.email)}</a></span>` : ''}
               </div>
             </div>
-            ${isNew ? `<div style="display:flex;gap:4px;flex-shrink:0">
-              <button class="delete-conv" style="position:static" onclick="openContactForm(${i})" title="עריכה">✏️</button>
-              <button class="delete-conv" style="position:static" onclick="deleteContact(${i})" title="מחיקה">✕</button>
-            </div>` : '<span style="font-size:11px;color:var(--muted);flex-shrink:0">קיים</span>'}
+            <div style="display:flex;gap:4px;flex-shrink:0">
+              <button class="delete-conv" style="position:static" onclick="openContactForm('${editKey}')" title="עריכה">✏️</button>
+              ${typeof editKey === 'number' ? `<button class="delete-conv" style="position:static" onclick="deleteContact(${editKey})" title="מחיקה">✕</button>` : ''}
+            </div>
           </div>
         </div>`;
       }
@@ -2138,19 +2140,19 @@ function showContactDetail() {
             <strong style="font-size:14px">👤 אנשי קשר (${totalCount}/3)</strong>
             ${totalCount < 3 ? `<button class="btn btn-outline btn-sm" onclick="openContactForm(-1)">+ הוסף</button>` : ''}
           </div>
-          ${legacyContacts.map((p,i) => renderContactRow(p, i, false)).join('')}
+          ${legacyContacts.map(p => renderContactRow(p, p._key)).join('')}
           <div id="contacts-list">
-            ${newContacts.map((p,i) => renderContactRow(p, i, true)).join('')}
+            ${newContacts.map((p,i) => renderContactRow(p, i)).join('')}
             ${!legacyContacts.length && !newContacts.length ? '<p style="color:var(--muted);font-size:13px">אין אנשי קשר עדיין</p>' : ''}
           </div>
           <div id="contact-form" style="display:none;margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px">
             <input type="hidden" id="contact-edit-idx" value="-1">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-              <input id="cf-name" type="text" placeholder="שם *" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)">
-              <input id="cf-role" type="text" placeholder="תפקיד" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)">
-              <input id="cf-phone" type="tel" placeholder="טלפון" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)">
-              <input id="cf-mobile" type="tel" placeholder="נייד" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)">
-              <input id="cf-email" type="email" placeholder="מייל" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text);grid-column:1/-1">
+              <input id="cf-name" type="text" placeholder="שם *" style="${inStyle}">
+              <input id="cf-role" type="text" placeholder="תפקיד" style="${inStyle}">
+              <input id="cf-phone" type="tel" placeholder="טלפון" style="${inStyle}">
+              <input id="cf-mobile" type="tel" placeholder="נייד" style="${inStyle}">
+              <input id="cf-email" type="email" placeholder="מייל" style="${inStyle};grid-column:1/-1">
             </div>
             <div style="display:flex;gap:6px">
               <button class="btn btn-primary btn-sm" onclick="saveContact()">שמור</button>
@@ -2315,9 +2317,12 @@ function clearReminderInList(contactId, type, convIdx) {
   checkReminders();
 }
 
-function openContactForm(idx) {
-  document.getElementById('contact-edit-idx').value = idx;
-  const p = idx >= 0 ? (selectedContact.contacts||[])[idx] : null;
+function openContactForm(editKey) {
+  document.getElementById('contact-edit-idx').value = editKey;
+  let p = null;
+  if (editKey === 'L1') p = { name: selectedContact.contactName||'', role: selectedContact.contactRole||'', phone: '', mobile: selectedContact.mobile||'', email: selectedContact.email||'' };
+  else if (editKey === 'L2') p = { name: selectedContact.contactName2||'', role: selectedContact.contactRole2||'', phone: '', mobile: selectedContact.mobile2||'', email: selectedContact.email2||'' };
+  else if (editKey >= 0) p = (selectedContact.contacts||[])[editKey];
   document.getElementById('cf-name').value = p ? p.name||'' : '';
   document.getElementById('cf-role').value = p ? p.role||'' : '';
   document.getElementById('cf-phone').value = p ? p.phone||'' : '';
@@ -2338,14 +2343,27 @@ function saveContact() {
   const phone = document.getElementById('cf-phone').value.trim();
   const mobile = document.getElementById('cf-mobile').value.trim();
   const email = document.getElementById('cf-email').value.trim();
-  const idx = parseInt(document.getElementById('contact-edit-idx').value);
-  if (!selectedContact.contacts) selectedContact.contacts = [];
-  const legacyCount = (selectedContact.contactName ? 1 : 0) + (selectedContact.contactName2 ? 1 : 0);
-  if (idx >= 0) {
-    selectedContact.contacts[idx] = { name, role, phone, mobile, email };
+  const editKey = document.getElementById('contact-edit-idx').value;
+  if (editKey === 'L1') {
+    selectedContact.contactName = name;
+    selectedContact.contactRole = role;
+    selectedContact.mobile = mobile;
+    selectedContact.email = email;
+  } else if (editKey === 'L2') {
+    selectedContact.contactName2 = name;
+    selectedContact.contactRole2 = role;
+    selectedContact.mobile2 = mobile;
+    selectedContact.email2 = email;
   } else {
-    if (legacyCount + selectedContact.contacts.length >= 3) { showToast('מקסימום 3 אנשי קשר'); return; }
-    selectedContact.contacts.push({ name, role, phone, mobile, email });
+    const idx = parseInt(editKey);
+    if (!selectedContact.contacts) selectedContact.contacts = [];
+    const legacyCount = (selectedContact.contactName ? 1 : 0) + (selectedContact.contactName2 ? 1 : 0);
+    if (idx >= 0) {
+      selectedContact.contacts[idx] = { name, role, phone, mobile, email };
+    } else {
+      if (legacyCount + selectedContact.contacts.length >= 3) { showToast('מקסימום 3 אנשי קשר'); return; }
+      selectedContact.contacts.push({ name, role, phone, mobile, email });
+    }
   }
   saveToStorage();
   scheduleSyncToGitHub();
@@ -2360,8 +2378,8 @@ function deleteContact(idx) {
   showContactDetail();
 }
 
-// Legacy aliases kept for backwards compat
-function openPersonForm(idx) { openContactForm(idx); }
+// Legacy aliases
+function openPersonForm(editKey) { openContactForm(editKey); }
 function closePersonForm() { closeContactForm(); }
 function savePerson() { saveContact(); }
 function deletePerson(idx) { deleteContact(idx); }
