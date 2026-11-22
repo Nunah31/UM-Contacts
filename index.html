@@ -2090,59 +2090,76 @@ function showContactDetail() {
       </div>`;
     })()}
 
-    <div class="card">
-      <h3>פרטי קשר</h3>
-      <div class="info-grid">
-        <div class="info-item"><label>${activeGroup === 'matnasim' ? 'שם מתנ"ס' : 'שם המוסד'}</label><div class="value">${escHtml(c.school || c.city || '—')}</div></div>
-        <div class="info-item"><label>עיר</label><div class="value">${escHtml(c.city)}</div></div>
-        ${activeGroup === 'schools' ? `
-        <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
-        <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(levelStr(c) || '—')}</div></div>` : ''}
-        <div class="info-item"><label>טלפון</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
-        ${c.phone2 ? `<div class="info-item"><label>טלפון 2</label><div class="value"><a href="tel:${c.phone2}">${escHtml(c.phone2)}</a></div></div>` : ''}
-        ${activeGroup === 'schools' ? `<div class="info-item"><label>מייל בי"ס</label><div class="value">${c.schoolEmail ? `<a href="mailto:${c.schoolEmail}">${escHtml(c.schoolEmail)}</a>` : '—'}</div></div>` : ''}
-        <div class="info-item"><label>איש קשר</label><div class="value">${escHtml(c.contactName || '—')}</div></div>
-        <div class="info-item"><label>נייד איש קשר</label><div class="value">${phoneLinks(c.mobile)}</div></div>
-        <div class="info-item"><label>מייל</label><div class="value">${c.email ? `<a href="mailto:${c.email}">${escHtml(c.email)}</a>` : '—'}</div></div>
-        ${activeGroup === 'schools' ? `
-        <div class="info-item"><label>איש קשר 02</label><div class="value">${escHtml(c.contactName2 || '—')}</div></div>
-        <div class="info-item"><label>נייד איש קשר 02</label><div class="value">${phoneLinks(c.mobile2)}</div></div>
-        <div class="info-item"><label>מייל איש קשר 02</label><div class="value">${c.email2 ? `<a href="mailto:${c.email2}">${escHtml(c.email2)}</a>` : '—'}</div></div>` : ''}
-        ${c.interest ? `<div class="info-item"><label>תחום עניין</label><div class="value">${escHtml(c.interest)}</div></div>` : ''}
-        ${c.lastContactDate ? `<div class="info-item"><label>תאריך קשר אחרון</label><div class="value">${escHtml(c.lastContactDate)}</div></div>` : ''}
-        ${c.notes && !c.conversations?.length ? `<div class="info-item" style="grid-column:1/-1"><label>הערות</label><div class="value" style="white-space:pre-wrap">${escHtml(c.notes)}</div></div>` : ''}
-      </div>
-    </div>
+    ${(() => {
+      const legacyContacts = [];
+      if (c.contactName) legacyContacts.push({ name: c.contactName, mobile: c.mobile, email: c.email, _legacy: true });
+      if (c.contactName2) legacyContacts.push({ name: c.contactName2, mobile: c.mobile2, email: c.email2, _legacy: true });
+      const newContacts = c.contacts || [];
+      const totalCount = legacyContacts.length + newContacts.length;
 
-    <div class="card" id="people-card">
-      <h3 style="display:flex;align-items:center;justify-content:space-between">
-        <span>👤 אנשי קשר (${(c.people||[]).length}/3)</span>
-        ${(c.people||[]).length < 3 ? `<button class="btn btn-outline btn-sm" onclick="openPersonForm(-1)">+ הוסף</button>` : ''}
-      </h3>
-      <div id="people-list">
-        ${(c.people||[]).map((p,i) => `
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-            <div style="flex:1">
+      function renderContactRow(p, i, isNew) {
+        return `<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--surface)">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+            <div style="flex:1;min-width:0">
               <div style="font-weight:600;font-size:15px">${escHtml(p.name||'')}</div>
-              ${p.role ? `<div style="font-size:12px;color:var(--muted)">${escHtml(p.role)}</div>` : ''}
+              ${p.role ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">${escHtml(p.role)}</div>` : ''}
+              <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px">
+                ${p.phone ? `<span>📞 <a href="tel:${p.phone}">${escHtml(p.phone)}</a></span>` : ''}
+                ${p.mobile ? `<span>📱 ${phoneLinks(p.mobile)}</span>` : ''}
+                ${p.email ? `<span>✉️ <a href="mailto:${p.email}">${escHtml(p.email)}</a></span>` : ''}
+              </div>
             </div>
-            <button class="delete-conv" style="position:static" onclick="openPersonForm(${i})" title="עריכה">✏️</button>
-            <button class="delete-conv" style="position:static" onclick="deletePerson(${i})" title="מחיקה">✕</button>
-          </div>`).join('')}
-        ${!(c.people||[]).length ? '<p style="color:var(--muted);font-size:13px">אין אנשי קשר עדיין</p>' : ''}
-      </div>
-      <div id="person-form" style="display:none;margin-top:12px;background:#f8f9fa;border-radius:8px;padding:12px">
-        <input type="hidden" id="person-edit-idx" value="-1">
-        <div style="display:flex;gap:8px;margin-bottom:8px">
-          <input id="person-name" type="text" placeholder="שם" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl">
-          <input id="person-role" type="text" placeholder="תפקיד" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl">
+            ${isNew ? `<div style="display:flex;gap:4px;flex-shrink:0">
+              <button class="delete-conv" style="position:static" onclick="openContactForm(${i})" title="עריכה">✏️</button>
+              <button class="delete-conv" style="position:static" onclick="deleteContact(${i})" title="מחיקה">✕</button>
+            </div>` : '<span style="font-size:11px;color:var(--muted);flex-shrink:0">קיים</span>'}
+          </div>
+        </div>`;
+      }
+
+      return `<div class="card">
+        <h3>פרטי קשר</h3>
+        <div class="info-grid">
+          <div class="info-item"><label>${activeGroup === 'matnasim' ? 'שם מתנ"ס' : 'שם המוסד'}</label><div class="value">${escHtml(c.school || c.city || '—')}</div></div>
+          <div class="info-item"><label>עיר</label><div class="value">${escHtml(c.city)}</div></div>
+          ${activeGroup === 'schools' ? `
+          <div class="info-item"><label>כתובת</label><div class="value">${escHtml(c.address || '—')}</div></div>
+          <div class="info-item"><label>שלב בחינוך</label><div class="value">${escHtml(levelStr(c) || '—')}</div></div>` : ''}
+          <div class="info-item"><label>טלפון</label><div class="value"><a href="tel:${c.phone}">${escHtml(c.phone || '—')}</a></div></div>
+          ${c.phone2 ? `<div class="info-item"><label>טלפון 2</label><div class="value"><a href="tel:${c.phone2}">${escHtml(c.phone2)}</a></div></div>` : ''}
+          ${activeGroup === 'schools' ? `<div class="info-item"><label>מייל בי"ס</label><div class="value">${c.schoolEmail ? `<a href="mailto:${c.schoolEmail}">${escHtml(c.schoolEmail)}</a>` : '—'}</div></div>` : ''}
+          ${c.interest ? `<div class="info-item"><label>תחום עניין</label><div class="value">${escHtml(c.interest)}</div></div>` : ''}
+          ${c.lastContactDate ? `<div class="info-item"><label>תאריך קשר אחרון</label><div class="value">${escHtml(c.lastContactDate)}</div></div>` : ''}
+          ${c.notes && !c.conversations?.length ? `<div class="info-item" style="grid-column:1/-1"><label>הערות</label><div class="value" style="white-space:pre-wrap">${escHtml(c.notes)}</div></div>` : ''}
         </div>
-        <div style="display:flex;gap:6px">
-          <button class="btn btn-primary btn-sm" onclick="savePerson()">שמור</button>
-          <button class="btn btn-outline btn-sm" onclick="closePersonForm()">ביטול</button>
+
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <strong style="font-size:14px">👤 אנשי קשר (${totalCount}/3)</strong>
+            ${totalCount < 3 ? `<button class="btn btn-outline btn-sm" onclick="openContactForm(-1)">+ הוסף</button>` : ''}
+          </div>
+          ${legacyContacts.map((p,i) => renderContactRow(p, i, false)).join('')}
+          <div id="contacts-list">
+            ${newContacts.map((p,i) => renderContactRow(p, i, true)).join('')}
+            ${!legacyContacts.length && !newContacts.length ? '<p style="color:var(--muted);font-size:13px">אין אנשי קשר עדיין</p>' : ''}
+          </div>
+          <div id="contact-form" style="display:none;margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px">
+            <input type="hidden" id="contact-edit-idx" value="-1">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+              <input id="cf-name" type="text" placeholder="שם *" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)">
+              <input id="cf-role" type="text" placeholder="תפקיד" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)">
+              <input id="cf-phone" type="tel" placeholder="טלפון" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)">
+              <input id="cf-mobile" type="tel" placeholder="נייד" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text)">
+              <input id="cf-email" type="email" placeholder="מייל" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl;background:var(--bg);color:var(--text);grid-column:1/-1">
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-primary btn-sm" onclick="saveContact()">שמור</button>
+              <button class="btn btn-outline btn-sm" onclick="closeContactForm()">ביטול</button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </div>`;
+    })()}
 
     <div class="card">
       <h3>היסטוריית שיחות (${(c.conversations||[]).length})</h3>
@@ -2298,43 +2315,56 @@ function clearReminderInList(contactId, type, convIdx) {
   checkReminders();
 }
 
-function openPersonForm(idx) {
-  document.getElementById('person-edit-idx').value = idx;
-  const p = idx >= 0 ? (selectedContact.people||[])[idx] : null;
-  document.getElementById('person-name').value = p ? p.name||'' : '';
-  document.getElementById('person-role').value = p ? p.role||'' : '';
-  document.getElementById('person-form').style.display = 'block';
-  document.getElementById('person-name').focus();
+function openContactForm(idx) {
+  document.getElementById('contact-edit-idx').value = idx;
+  const p = idx >= 0 ? (selectedContact.contacts||[])[idx] : null;
+  document.getElementById('cf-name').value = p ? p.name||'' : '';
+  document.getElementById('cf-role').value = p ? p.role||'' : '';
+  document.getElementById('cf-phone').value = p ? p.phone||'' : '';
+  document.getElementById('cf-mobile').value = p ? p.mobile||'' : '';
+  document.getElementById('cf-email').value = p ? p.email||'' : '';
+  document.getElementById('contact-form').style.display = 'block';
+  document.getElementById('cf-name').focus();
 }
 
-function closePersonForm() {
-  document.getElementById('person-form').style.display = 'none';
+function closeContactForm() {
+  document.getElementById('contact-form').style.display = 'none';
 }
 
-function savePerson() {
-  const name = document.getElementById('person-name').value.trim();
+function saveContact() {
+  const name = document.getElementById('cf-name').value.trim();
   if (!name) { showToast('חייב להזין שם'); return; }
-  const role = document.getElementById('person-role').value.trim();
-  const idx = parseInt(document.getElementById('person-edit-idx').value);
-  if (!selectedContact.people) selectedContact.people = [];
+  const role = document.getElementById('cf-role').value.trim();
+  const phone = document.getElementById('cf-phone').value.trim();
+  const mobile = document.getElementById('cf-mobile').value.trim();
+  const email = document.getElementById('cf-email').value.trim();
+  const idx = parseInt(document.getElementById('contact-edit-idx').value);
+  if (!selectedContact.contacts) selectedContact.contacts = [];
+  const legacyCount = (selectedContact.contactName ? 1 : 0) + (selectedContact.contactName2 ? 1 : 0);
   if (idx >= 0) {
-    selectedContact.people[idx] = { name, role };
+    selectedContact.contacts[idx] = { name, role, phone, mobile, email };
   } else {
-    if (selectedContact.people.length >= 3) { showToast('מקסימום 3 אנשי קשר'); return; }
-    selectedContact.people.push({ name, role });
+    if (legacyCount + selectedContact.contacts.length >= 3) { showToast('מקסימום 3 אנשי קשר'); return; }
+    selectedContact.contacts.push({ name, role, phone, mobile, email });
   }
   saveToStorage();
   scheduleSyncToGitHub();
   showContactDetail();
 }
 
-function deletePerson(idx) {
-  if (!selectedContact.people) return;
-  selectedContact.people.splice(idx, 1);
+function deleteContact(idx) {
+  if (!selectedContact.contacts) return;
+  selectedContact.contacts.splice(idx, 1);
   saveToStorage();
   scheduleSyncToGitHub();
   showContactDetail();
 }
+
+// Legacy aliases kept for backwards compat
+function openPersonForm(idx) { openContactForm(idx); }
+function closePersonForm() { closeContactForm(); }
+function savePerson() { saveContact(); }
+function deletePerson(idx) { deleteContact(idx); }
 
 function clearFollowUp() {
   selectedContact.followUpDate = null;
