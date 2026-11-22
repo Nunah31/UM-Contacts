@@ -2114,6 +2114,36 @@ function showContactDetail() {
       </div>
     </div>
 
+    <div class="card" id="people-card">
+      <h3 style="display:flex;align-items:center;justify-content:space-between">
+        <span>👤 אנשי קשר (${(c.people||[]).length}/3)</span>
+        ${(c.people||[]).length < 3 ? `<button class="btn btn-outline btn-sm" onclick="openPersonForm(-1)">+ הוסף</button>` : ''}
+      </h3>
+      <div id="people-list">
+        ${(c.people||[]).map((p,i) => `
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:15px">${escHtml(p.name||'')}</div>
+              ${p.role ? `<div style="font-size:12px;color:var(--muted)">${escHtml(p.role)}</div>` : ''}
+            </div>
+            <button class="delete-conv" style="position:static" onclick="openPersonForm(${i})" title="עריכה">✏️</button>
+            <button class="delete-conv" style="position:static" onclick="deletePerson(${i})" title="מחיקה">✕</button>
+          </div>`).join('')}
+        ${!(c.people||[]).length ? '<p style="color:var(--muted);font-size:13px">אין אנשי קשר עדיין</p>' : ''}
+      </div>
+      <div id="person-form" style="display:none;margin-top:12px;background:#f8f9fa;border-radius:8px;padding:12px">
+        <input type="hidden" id="person-edit-idx" value="-1">
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <input id="person-name" type="text" placeholder="שם" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl">
+          <input id="person-role" type="text" placeholder="תפקיד" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px;font-family:inherit;direction:rtl">
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-primary btn-sm" onclick="savePerson()">שמור</button>
+          <button class="btn btn-outline btn-sm" onclick="closePersonForm()">ביטול</button>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <h3>היסטוריית שיחות (${(c.conversations||[]).length})</h3>
       ${convHtml || '<p style="color:var(--muted);font-size:13px">אין שיחות מתועדות עדיין</p>'}
@@ -2266,6 +2296,44 @@ function clearReminderInList(contactId, type, convIdx) {
   saveToStorage();
   renderReminders();
   checkReminders();
+}
+
+function openPersonForm(idx) {
+  document.getElementById('person-edit-idx').value = idx;
+  const p = idx >= 0 ? (selectedContact.people||[])[idx] : null;
+  document.getElementById('person-name').value = p ? p.name||'' : '';
+  document.getElementById('person-role').value = p ? p.role||'' : '';
+  document.getElementById('person-form').style.display = 'block';
+  document.getElementById('person-name').focus();
+}
+
+function closePersonForm() {
+  document.getElementById('person-form').style.display = 'none';
+}
+
+function savePerson() {
+  const name = document.getElementById('person-name').value.trim();
+  if (!name) { showToast('חייב להזין שם'); return; }
+  const role = document.getElementById('person-role').value.trim();
+  const idx = parseInt(document.getElementById('person-edit-idx').value);
+  if (!selectedContact.people) selectedContact.people = [];
+  if (idx >= 0) {
+    selectedContact.people[idx] = { name, role };
+  } else {
+    if (selectedContact.people.length >= 3) { showToast('מקסימום 3 אנשי קשר'); return; }
+    selectedContact.people.push({ name, role });
+  }
+  saveToStorage();
+  scheduleSyncToGitHub();
+  showContactDetail();
+}
+
+function deletePerson(idx) {
+  if (!selectedContact.people) return;
+  selectedContact.people.splice(idx, 1);
+  saveToStorage();
+  scheduleSyncToGitHub();
+  showContactDetail();
 }
 
 function clearFollowUp() {
